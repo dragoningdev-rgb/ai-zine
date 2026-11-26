@@ -177,6 +177,48 @@ GEMINI_SYSTEM_INSTRUCTION = (
 )
 
 
+GEMINI_MODELS_LIST_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_EXCLUDE_MODEL_RE = re.compile(r"(embedding|imagen|veo|tts|audio|live|aqa|vision|bisect|robotics)", flags=re.IGNORECASE)
+
+
+def _discover_gemini_flash_models(api_key: str) -> List[str]:
+    """404 발생 시 v1beta/models를 조회해 generateContent를 지원하는 최신 Flash 모델 후보 목록을 찾습니다."""
+    try:
+        resp = requests.get(GEMINI_MODELS_LIST_URL, params={"key": api_key}, timeout=15)
+        if not resp.ok:
+            logger.warning("Gemini ListModels failed (status=%d): %s", resp.status_code, _mask_secret(resp.text[:300], api_key))
+            return []
+        models = resp.json().get("models", [])
+    except Exception as exc:
+        logger.warning("Gemini ListModels network error: %s", _mask_secret(str(exc), api_key))
+        return []
+
+    candidates: List[str] = []
+    for m in models:
+        name = str(m.get("name") or "")
+        methods = m.get("supportedGenerationMethods") or []
+        if "generateContent" not in methods:
+            continue
+        short_name = name.replace("models/", "", 1).strip()
+        if not short_name.startswith("gemini-") or GEMINI_EXCLUDE_MODEL_RE.search(short_name):
+            continue
+        if "flash" in short_name.lower():
+            candidates.append(short_name)
+
+    # 최신 버전(높은 숫자) 및 일반 Flash(non-lite/non-exp 우선) 순으로 정렬합니다.
+    def _sort_key(model_name: str) -> tuple:
+        ver_match = re.search(r"gemini-(\d+(?:\.\d+)?)", model_name)
+        ver = float(ver_match.group(1)) if ver_match else 0.0
+        is_lite = 1 if "lite" in model_name else 0
+        is_preview = 1 if ("exp" in model_name or "preview" in model_name) else 0
+        return (-ver, is_lite, is_preview, model_name)
+
+    candidates.sort(key=_sort_key)
+    if candidates:
+        logger.info("Discovered live Gemini Flash models via v1beta/models: %s", ", ".join(candidates[:6]))
+    return candidates
+
+
 def _call_gemini(prompt: str, api_key: str, model: str) -> str:
     """Google Gemini REST API(v1beta/models/{model}:generateContent)를 호출하고 성공/실패 상세 로그를 남깁니다."""
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -209,6 +251,27 @@ def _call_gemini(prompt: str, api_key: str, model: str) -> str:
         return text
     except (ValueError, KeyError, IndexError) as exc:
         raise LLMAPIError("Gemini", resp.status_code, f"unexpected response structure: {resp.text[:400]}") from exc
+
+
+def _call_gemini_smart(prompt: str, api_key: str, primary_model: str) -> str:
+    """primary_model(기본 gemini-3.8-flash)을 먼저 호출하고, HTTP 404 시 v1beta/models에서 가용 Flash 모델을 자동 탐색해 재시도합니다."""
+    try:
+        return _call_gemini(prompt, api_key, primary_model)
+    except LLMAPIError as exc:
+        if exc.status_code != 404:
+            raise
+        logger.warning(
+            "Primary Gemini model '%s' returned HTTP 404; querying v1beta/models for an available Flash model.",
+            primary_model,
+        )
+        discovered = [m for m in _discover_gemini_flash_models(api_key) if m != primary_model]
+        for alt_model in discovered[:2]:
+            try:
+                logger.info("Retrying Gemini API with discovered model: %s", alt_model)
+                return _call_gemini(prompt, api_key, alt_model)
+            except LLMAPIError as alt_exc:
+                logger.error("Discovered model '%s' also failed (status=%s): %s", alt_model, alt_exc.status_code, alt_exc.detail)
+        raise
 
 
 def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) -> str:
@@ -260,7 +323,7 @@ def translate_github_descriptions(
     )
     try:
         raw = (
-            _call_gemini(prompt, g_key, GEMINI_MODEL)
+            _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
             if g_key
             else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
         )
@@ -428,7 +491,7 @@ def curate_edition(
     for attempt in range(1, 3):
         try:
             raw = (
-                _call_gemini(prompt, g_key, GEMINI_MODEL)
+                _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
                 if g_key
                 else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
             )

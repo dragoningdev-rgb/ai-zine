@@ -122,9 +122,9 @@ AI_KEYWORDS = (
     "오픈웨이트",
 )
 
-# LLM Editor Configuration (Google AI Studio 무료 티어 표준 gemini-2.5-flash)
+# LLM Editor Configuration (gemini-3.8-flash 기본값 + 404 시 v1beta/models 자동 탐색)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()

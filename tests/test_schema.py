@@ -165,3 +165,47 @@ def test_update_radar_computes_real_deltas(tmp_path: Path) -> None:
     assert radar.major_models[1].delta == -1
     assert radar.onprem_models[0].license == "Apache 2.0"
     assert radar.onprem_models[0].vllm_supported is True
+
+
+def test_gemini_404_discovers_available_flash_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify HTTP 404 on primary model triggers v1beta/models discovery and succeeds with live Flash model."""
+    from unittest.mock import MagicMock
+
+    import requests
+
+    from pipeline.curate import _call_gemini_smart
+
+    called_urls = []
+
+    def fake_post(url: str, *args, **kwargs):
+        called_urls.append(url)
+        resp = MagicMock()
+        if "gemini-3.8-flash" in url:
+            resp.ok = False
+            resp.status_code = 404
+            resp.text = '{"error": {"code": 404, "message": "models/gemini-3.8-flash is not found"}}'
+            return resp
+        resp.ok = True
+        resp.status_code = 200
+        resp.json.return_value = {"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]}
+        return resp
+
+    def fake_get(url: str, *args, **kwargs):
+        resp = MagicMock()
+        resp.ok = True
+        resp.status_code = 200
+        resp.json.return_value = {
+            "models": [
+                {"name": "models/gemini-2.0-flash", "supportedGenerationMethods": ["generateContent"]},
+                {"name": "models/gemini-3.0-flash", "supportedGenerationMethods": ["generateContent"]},
+            ]
+        }
+        return resp
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    out = _call_gemini_smart("hello", "FAKE_KEY", "gemini-3.8-flash")
+    assert out == '{"ok": true}'
+    assert any("gemini-3.8-flash" in u for u in called_urls)
+    assert any("gemini-3.0-flash" in u for u in called_urls)
