@@ -1,13 +1,13 @@
 {
   "updated_at": "2026-11-26",
   "week_label": "2026년 11월 4주차",
-  "source": "GitHub Search API · HuggingFace Trending Models",
+  "source": "GitHub Search API · OpenRouter · HuggingFace Official Orgs",
   "github_trending_top5": [
     {
       "rank": 1,
       "name": "morluto/rea",
       "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
-      "weekly_stars": 478536,
+      "weekly_stars": 478550,
       "language": "TypeScript",
       "url": "https://github.com/morluto/rea"
     },
@@ -15,7 +15,7 @@
       "rank": 2,
       "name": "openclaw/openclaw",
       "description": "The AI that really does things. Any OS. Any Platform. The lobster way. 🦞",
-      "weekly_stars": 395232,
+      "weekly_stars": 395233,
       "language": "TypeScript",
       "url": "https://github.com/openclaw/openclaw"
     },
@@ -23,7 +23,7 @@
       "rank": 3,
       "name": "mattpocock/skills",
       "description": "Skills for Real Engineers. Straight from my .agents directory.",
-      "weekly_stars": 332924,
+      "weekly_stars": 332939,
       "language": "Shell",
       "url": "https://github.com/mattpocock/skills"
     },
@@ -31,7 +31,7 @@
       "rank": 4,
       "name": "obra/superpowers",
       "description": "An agentic skills framework & software development methodology that works.",
-      "weekly_stars": 326642,
+      "weekly_stars": 326656,
       "language": "Shell",
       "url": "https://github.com/obra/superpowers"
     },
@@ -39,152 +39,123 @@
       "rank": 5,
       "name": "affaan-m/ECC",
       "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
-      "weekly_stars": 310758,
+      "weekly_stars": 310763,
       "language": "JavaScript",
       "url": "https://github.com/affaan-m/ECC"
     }
   ],
-  "model_rankings": {
-    "coding": [
-      {
-        "rank": 1,
-        "name": "LingSante-3.1-flash",
-        "provider": "inclusionAI",
-        "score": 134.0,
-        "delta": 0,
-        "metric_label": "♥ 192",
-        "url": "https://huggingface.co/inclusionAI/LingSante-3.1-flash"
-      },
-      {
-        "rank": 2,
-        "name": "MemT-1.0-Pro",
-        "provider": "MemTensor",
-        "score": 93.0,
-        "delta": 0,
-        "metric_label": "♥ 130",
-        "url": "https://huggingface.co/MemTensor/MemT-1.0-Pro"
-      },
-      {
-        "rank": 3,
-        "name": "Raon-1-mini",
-        "provider": "KRAFTON",
-        "score": 93.0,
-        "delta": 0,
-        "metric_label": "♥ 114",
-        "url": "https://huggingface.co/KRAFTON/Raon-1-mini"
-      },
-      {
-        "rank": 4,
-        "name": "Olala-v1.0-mini-7A1B",
-        "provider": "OVHaiLLM",
-        "score": 63.0,
-        "delta": 0,
-        "metric_label": "♥ 349",
-        "url": "https://huggingface.co/OVHaiLLM/Olala-v1.0-mini-7A1B"
-      },
-      {
-        "rank": 5,
-        "name": "Aion-1.0-Instruct-2.3B",
-        "provider": "microsoft",
-        "score": 53.5,
-        "delta": 0,
-        "metric_label": "♥ 347",
-        "url": "https://huggingface.co/microsoft/Aion-1.0-Instruct-2.3B"
-      }
-    ],
-    "reasoning": [
-      {
-        "rank": 1,
-        "name": "Kolibri-1.1",
-        "provider": "Aleph-Alpha",
-        "score": 116.0,
-        "delta": 0,
-        "metric_label": "♥ 155",
-        "url": "https://huggingface.co/Aleph-Alpha/Kolibri-1.1"
-      },
-      {
-        "rank": 2,
-        "name": "Inkling-2-Mini-abliterated-GGUF",
-        "provider": "orcarouter",
-        "score": 112.0,
-        "delta": 0,
-        "metric_label": "♥ 222",
-        "url": "https://huggingface.co/orcarouter/Inkling-2-Mini-abliterated-GGUF"
-      },
-      {
-        "rank": 3,
-        "name": "Olala-v1.0-mini-7A1B-GGUF",
-        "provider": "OVHaiLLM",
-        "score": 29.0,
-        "delta": 0,
-        "metric_label": "♥ 93",
-        "url": "https://huggingface.co/OVHaiLLM/Olala-v1.0-mini-7A1B-GGUF"
-      },
-      {
-        "rank": 4,
-        "name": "Inkling-2-Mini-DFlash2",
-        "provider": "incoai",
-        "score": 21.0,
-        "delta": 0,
-        "metric_label": "♥ 22",
-        "url": "https://huggingface.co/incoai/Inkling-2-Mini-DFlash2"
-      },
-      {
-        "rank": 5,
-        "name": "Inkling-2-Mini-Fast-GGUF",
-        "provider": "Lucebox",
-        "score": 20.0,
-        "delta": 0,
-        "metric_label": "♥ 20",
-        "url": "https://huggingface.co/Lucebox/Inkling-2-Mini-Fast-GGUF"
-      }
-    ],
-    "local": [
-      {
-        "rank": 1,
-        "name": "Ternary-Bonsai-2.5-27B-GGUF",
-        "provider": "prism-ml",
-        "score": 298.0,
-        "delta": 0,
-        "metric_label": "♥ 339",
-        "url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2.5-27B-GGUF"
-      },
-      {
-        "rank": 2,
-        "name": "NVIDIA-Nemotron-3.5-Bolt-E4B-4GB",
-        "provider": "nvidia",
-        "score": 51.5,
-        "delta": 0,
-        "metric_label": "♥ 1,545",
-        "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB"
-      },
-      {
-        "rank": 3,
-        "name": "Meta-Llama-3-8B-Instruct",
-        "provider": "meta-llama",
-        "score": 48.5,
-        "delta": 0,
-        "metric_label": "♥ 6,685",
-        "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct"
-      },
-      {
-        "rank": 4,
-        "name": "Ternary-Bonsai-2.5-27B-Uncensored-GGUF",
-        "provider": "AtomicChat",
-        "score": 44.1,
-        "delta": 0,
-        "metric_label": "♥ 84",
-        "url": "https://huggingface.co/AtomicChat/Ternary-Bonsai-2.5-27B-Uncensored-GGUF"
-      },
-      {
-        "rank": 5,
-        "name": "Llama-3.1-8B-Instruct",
-        "provider": "meta-llama",
-        "score": 33.0,
-        "delta": 0,
-        "metric_label": "♥ 9,116",
-        "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
-      }
-    ]
-  }
+  "major_models": [
+    {
+      "rank": 1,
+      "name": "Gemini 2.5 Pro",
+      "provider": "Google",
+      "overall": 91.4,
+      "coding": 90.8,
+      "reasoning": 93.2,
+      "context_window": "1M",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/google/gemini-2.5-pro"
+    },
+    {
+      "rank": 2,
+      "name": "Claude Sonnet 4",
+      "provider": "Anthropic",
+      "overall": 90.9,
+      "coding": 93.5,
+      "reasoning": 89.6,
+      "context_window": "1M",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/anthropic/claude-sonnet-4.6"
+    },
+    {
+      "rank": 3,
+      "name": "OpenAI o3 / GPT-4.1",
+      "provider": "OpenAI",
+      "overall": 90.6,
+      "coding": 91.2,
+      "reasoning": 92.8,
+      "context_window": "200K",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/openai/o3-pro"
+    },
+    {
+      "rank": 4,
+      "name": "DeepSeek-R1 / V3",
+      "provider": "DeepSeek",
+      "overall": 88.7,
+      "coding": 88.4,
+      "reasoning": 90.5,
+      "context_window": "163K",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/deepseek/deepseek-r1-0528"
+    },
+    {
+      "rank": 5,
+      "name": "Grok 3",
+      "provider": "xAI",
+      "overall": 88.1,
+      "coding": 86.9,
+      "reasoning": 89.4,
+      "context_window": "500K",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/x-ai/grok-4.7"
+    }
+  ],
+  "onprem_models": [
+    {
+      "rank": 1,
+      "name": "DeepSeek-R1",
+      "org": "deepseek-ai",
+      "license": "MIT",
+      "params_vram": "671B MoE · FP8 ~670GB",
+      "vllm_supported": true,
+      "likes": 14487,
+      "delta": "NEW",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1"
+    },
+    {
+      "rank": 2,
+      "name": "Llama-3.1-8B-Instruct",
+      "org": "meta-llama",
+      "license": "Llama 3.1",
+      "params_vram": "8B · VRAM ~16GB",
+      "vllm_supported": true,
+      "likes": 9116,
+      "delta": "NEW",
+      "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
+    },
+    {
+      "rank": 3,
+      "name": "Meta-Llama-3-8B",
+      "org": "meta-llama",
+      "license": "Llama3",
+      "params_vram": "8B · VRAM ~16GB",
+      "vllm_supported": true,
+      "likes": 6817,
+      "delta": "NEW",
+      "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
+    },
+    {
+      "rank": 4,
+      "name": "Meta-Llama-3-8B-Instruct",
+      "org": "meta-llama",
+      "license": "Llama3",
+      "params_vram": "8B · VRAM ~16GB",
+      "vllm_supported": true,
+      "likes": 6685,
+      "delta": "NEW",
+      "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct"
+    },
+    {
+      "rank": 5,
+      "name": "DeepSeek-V4-Pro",
+      "org": "deepseek-ai",
+      "license": "MIT",
+      "params_vram": "오픈웨이트 · vLLM 권장",
+      "vllm_supported": true,
+      "likes": 5742,
+      "delta": "NEW",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro"
+    }
+  ]
 }
