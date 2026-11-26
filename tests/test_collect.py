@@ -8,6 +8,9 @@ from unittest.mock import MagicMock
 from pipeline.collect import (
     RawItem,
     deduplicate_items,
+    extract_meta_description,
+    fetch_hf_trending_models,
+    fetch_hn_top_comments,
     fetch_rss_source,
     is_ai_related,
     is_recent,
@@ -89,6 +92,12 @@ def test_is_ai_related_filters_non_ai_noise() -> None:
     assert is_ai_related("로컬 추론 모델 양자화 벤치마크")
     assert not is_ai_related("Best sourdough bread recipe for winter")
     assert not is_ai_related("CSS Grid layout tips for responsive cards")
+    assert not is_ai_related("Ask HN: Who is hiring? (AI Engineers, November 2026)")
+    assert not is_ai_related("[채용] 생성형 AI LLM 백엔드 개발자 모집")
+
+
+def test_normalize_url_unifies_http_and_mobile_subdomains() -> None:
+    assert normalize_url("http://m.example.com/ai-post/") == normalize_url("https://www.example.com/ai-post")
 
 
 def test_is_recent_window() -> None:
@@ -138,3 +147,49 @@ def test_fetch_rss_source_parses_and_filters_ai_entries() -> None:
     )
     assert len(items) == 1
     assert items[0].url == "https://example.com/agent-mcp"
+
+
+def test_extract_meta_description_prefers_og_description() -> None:
+    html_doc = """
+    <html><head>
+      <meta name="description" content="Fallback description">
+      <meta property="og:description" content="Benchmark shows 3.2x faster inference on 4-bit quantized 32B models.">
+    </head></html>
+    """
+    assert "3.2x faster inference" in extract_meta_description(html_doc)
+
+
+def test_fetch_hn_top_comments_filters_deleted_and_strips_html() -> None:
+    mock_session = MagicMock()
+    resp_deleted = MagicMock()
+    resp_deleted.json.return_value = {"deleted": True}
+    resp_deleted.raise_for_status.return_value = None
+
+    resp_valid = MagicMock()
+    resp_valid.json.return_value = {
+        "text": "<p>Running 32B models locally with vLLM cut our monthly API spend by 70%.</p>"
+    }
+    resp_valid.raise_for_status.return_value = None
+
+    mock_session.get.side_effect = [resp_deleted, resp_valid]
+    comments = fetch_hn_top_comments([101, 102], session=mock_session, limit=3)
+    assert len(comments) == 1
+    assert "cut our monthly API spend by 70%" in comments[0]
+
+
+def test_fetch_hf_trending_models_classifies_categories() -> None:
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.json.return_value = [
+        {"id": "Qwen/Qwen2.5-Coder-32B-Instruct", "likes": 4100, "trendingScore": 410, "tags": ["text-generation"]},
+        {"id": "deepseek-ai/DeepSeek-R1", "likes": 12000, "trendingScore": 980, "tags": ["reasoning"]},
+        {"id": "google/gemma-3-27b-it", "likes": 4800, "trendingScore": 540, "tags": ["gguf"]},
+    ]
+    mock_session = MagicMock()
+    mock_session.get.return_value = mock_resp
+
+    buckets = fetch_hf_trending_models(session=mock_session)
+    assert buckets["coding"][0]["name"] == "Qwen2.5-Coder-32B-Instruct"
+    assert buckets["reasoning"][0]["name"] == "DeepSeek-R1"
+    assert buckets["local"][0]["name"] == "gemma-3-27b-it"
+    assert buckets["coding"][0]["url"].startswith("https://huggingface.co/")

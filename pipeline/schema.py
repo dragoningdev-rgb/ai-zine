@@ -133,6 +133,8 @@ class ModelRankEntry(BaseModel):
     provider: str = Field(..., min_length=1)
     score: float = Field(..., ge=0)
     delta: Union[int, Literal["NEW"]] = 0
+    metric_label: Optional[str] = None
+    url: Optional[str] = None
 
 
 # 코딩·추론·로컬 3개 부문 모델 순위 묶음
@@ -146,5 +148,6 @@ class ModelRankings(BaseModel):
 class RadarData(BaseModel):
     updated_at: str
     week_label: Optional[str] = None
+    source: Optional[str] = None
     github_trending_top5: List[GithubTrendingRepo] = Field(default_factory=list)
     model_rankings: ModelRankings

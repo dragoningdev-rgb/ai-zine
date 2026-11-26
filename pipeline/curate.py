@@ -1,4 +1,4 @@
-"""LLM 편집장 호출(Gemini/OpenAI 호환) 및 장애 시 규칙 기반 폴백 생성 모듈."""
+"""LLM 편집장 호출(Gemini/OpenAI 호환), 100% 한국어 번역·요약, 상세 에러 로깅 및 폴백 모듈."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ from pipeline.utils import truncate_text
 logger = logging.getLogger(__name__)
 
 # LLM 응답에 코드블록(```json ... ```)이 섞여 들어올 때 JSON 본문만 추출하는 정규식
-JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", flags=re.DOTALL)
+JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*\}|\[.*\])\s*```", flags=re.DOTALL)
 
 # API 장애 시에도 매일 다른 신조어를 보여주기 위한 내장 풀
 FALLBACK_TERMS = [
@@ -68,22 +68,44 @@ FALLBACK_LUNCH_QUOTES = [
 ]
 
 
-def _extract_json_object(raw_text: str) -> Dict[str, Any]:
-    """LLM 응답 텍스트에서 마크다운 코드블록을 벗겨내고 JSON 객체로 파싱합니다."""
+class LLMAPIError(RuntimeError):
+    """LLM API 호출 실패 시 HTTP 상태코드와 원인 메시지를 함께 전달하는 예외."""
+
+    def __init__(self, provider: str, status_code: Optional[int], detail: str) -> None:
+        self.provider = provider
+        self.status_code = status_code
+        self.detail = detail
+        code_str = f"HTTP {status_code}" if status_code is not None else "NETWORK_ERROR"
+        super().__init__(f"[{provider}] {code_str}: {detail}")
+
+
+def _mask_secret(text: str, secret: str) -> str:
+    """로그에 API 키가 절대 노출되지 않도록 마스킹합니다."""
+    if not secret:
+        return text
+    return text.replace(secret, "***REDACTED***")
+
+
+def _extract_json_payload(raw_text: str) -> Any:
+    """LLM 응답 텍스트에서 마크다운 코드블록을 벗겨내고 JSON 객체/배열로 파싱합니다."""
     text = raw_text.strip()
     fence = JSON_FENCE_RE.search(text)
     if fence:
         text = fence.group(1)
     else:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            text = text[start : end + 1]
+        obj_start, arr_start = text.find("{"), text.find("[")
+        starts = [i for i in (obj_start, arr_start) if i != -1]
+        if starts:
+            start = min(starts)
+            end_char = "}" if text[start] == "{" else "]"
+            end = text.rfind(end_char)
+            if end > start:
+                text = text[start : end + 1]
     return json.loads(text)
 
 
 def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> str:
-    """수집된 상위 후보 20건을 한국어 매거진 JSON으로 편집하도록 지시하는 프롬프트를 만듭니다."""
+    """기사 원문 메타 설명과 HN 상위 댓글을 함께 담아 100% 한국어·구체적 요약을 지시합니다."""
     candidates = [
         {
             "title": it.title,
@@ -92,27 +114,30 @@ def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> 
             "url": it.url,
             "score": it.score,
             "comments": it.comments,
-            "summary": it.summary[:220],
+            "summary": it.summary[:320],
+            "meta_description": (it.extra.get("meta_description") or "")[:360],
+            "top_comments": (it.extra.get("top_comments") or [])[:5],
         }
         for it in items[:20]
     ]
     compact = date_str.replace("-", "")
-    return f"""당신은 한국 IT 직장인을 위한 출근길 3분 AI 매거진 'Morning AI Zine'의 편집장입니다.
-아래 수집된 최신 AI 기사/커뮤니티/도구 후보를 바탕으로 반드시 유효한 JSON 객체 1개만 출력하세요(마크다운 설명 금지).
+    return f"""당신은 한국 IT 직장인을 위한 출근길 3분 AI 매거진 'Morning AI Zine'의 수석 편집장입니다.
+아래 수집된 최신 AI 기사·커뮤니티·도구 후보(원문 메타 설명 및 Hacker News 상위 댓글 포함)를 읽고, 반드시 유효한 JSON 객체 1개만 출력하세요(설명·마크다운 금지).
 
-[규칙]
-- date: "{date_str}", issue_no: {issue_no}, read_time_min: 3
-- 모든 본문은 간결하고 세련된 한국어 매거진 문체로 작성
-- hero_news.title은 35자 이내, summary는 정확히 3줄 배열
-- hot_issue.summary는 정확히 2줄 배열
-- term_of_day는 오늘 뉴스와 관련된 핵심 AI 용어 1개 + 쉬운 비유 + 회의실 멘트
-- daily_pick은 실무에 바로 쓸 무료 툴("tool") 또는 프롬프트("prompt") 1개 + copy_text
-- lunch_talk.quote는 점심시간에 툭 던지기 좋은 1~2줄 업계 인사이트
-- buzz는 커뮤니티 논쟁/사고 실화 2~3개를 'pro_side(옹호파)' vs 'con_side(회의파)'로 정리
-- id 접두사는 "{compact}-n1", "{compact}-n2", "{compact}-t1", "{compact}-p1", "{compact}-b1" 형식 사용
-- url과 source는 반드시 후보 목록에 있는 실제 URL/출처를 사용
+[절대 준수 규칙 — 100% 한국어 & 구체성]
+1. **100% 자연스러운 한국어 번역·작성:** 원문이 영어인 기사·레포·댓글이라도 웹앱에 노출되는 모든 `title`, `summary`, `context`, `pro_side`, `con_side`, `description`, `analogy`, `office_line`, `quote`는 반드시 자연스러운 한국어 문장으로 번역·작성하세요. (고유명사·기술 약어 예: MCP, vLLM, Qwen, SWE-bench, WebGPU만 영문 병기 허용. 영어 문장 그대로 노출 절대 금지!)
+2. **뻔한 상투어 금지 / 구체적 팩트 중심:** "가장 높은 화제성을 기록했습니다", "실무 적용 가능성이 주목받고 있습니다", "원문에서 확인할 수 있습니다" 같은 공허한 문장은 절대 쓰지 마세요. 반드시 제공된 `meta_description`, `summary`, `top_comments`에서 구체적인 기술 구조·성능 수치·비용 변화·보안 이슈·실제 개발자 댓글의 핵심 논거를 뽑아 작성하세요.
+3. **카드별 분량 및 구조:**
+   - `date`: "{date_str}", `issue_no`: {issue_no}, `read_time_min`: 3
+   - `hero_news`: 가장 파급력 큰 1건. `title`은 35자 이내 한국어 헤드라인, `summary`는 구체적 팩트 3줄 배열(1줄=무엇이 나왔는지, 2줄=핵심 기술/수치, 3줄=실무 영향).
+   - `hot_issue`: 두 번째로 중요한 1건. `title`은 한국어, `summary`는 구체적 팩트 2줄 배열.
+   - `term_of_day`: 오늘 기사에서 등장한 핵심 AI 용어 1개 + 비개발자도 이해하는 1줄 비유 + 회의실에서 바로 쓸 멘트.
+   - `daily_pick`: 실무에 바로 써먹을 무료 도구(`"tool"`) 또는 프롬프트(`"prompt"`) 1개 + 한국어 2줄 설명 + 복붙 가능한 `copy_text`.
+   - `lunch_talk.quote`: 점심시간에 동료에게 툭 던지기 좋은 1~2줄 업계 인사이트.
+   - `buzz`: `top_comments`나 커뮤니티 논쟁이 뜨거운 이슈 2~3건. 실제 댓글 논지를 바탕으로 `context`(사건 배경 2줄), `pro_side`(옹호파 핵심 논리), `con_side`(회의파 핵심 논리)를 100% 한국어로 정리.
+4. **식별자 및 출처:** id는 "{compact}-n1", "{compact}-n2", "{compact}-t1", "{compact}-p1", "{compact}-b1" 형식, `url`과 `source`는 반드시 후보 목록의 실제 값을 사용하세요.
 
-[출력 JSON 스키마 예시]
+[출력 JSON 스키마]
 {{
   "date": "{date_str}",
   "issue_no": {issue_no},
@@ -135,43 +160,95 @@ def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> 
 
 
 def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    """Google Gemini REST API를 호출해 JSON 응답 문자열을 받아옵니다."""
+    """Google Gemini REST API(v1beta)를 호출하고 실패 시 정확한 HTTP 상태코드·에러 본문을 기록합니다."""
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    resp = requests.post(
-        endpoint,
-        params={"key": api_key},
-        json={
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json"},
-        },
-        timeout=REQUEST_TIMEOUT * 2,
-    )
-    resp.raise_for_status()
-    return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    try:
+        resp = requests.post(
+            endpoint,
+            params={"key": api_key},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.35, "responseMimeType": "application/json"},
+            },
+            timeout=REQUEST_TIMEOUT * 3,
+        )
+    except requests.RequestException as exc:
+        raise LLMAPIError("Gemini", None, _mask_secret(str(exc), api_key)) from exc
+
+    if not resp.ok:
+        body_preview = _mask_secret(resp.text[:500].replace("\n", " "), api_key)
+        raise LLMAPIError("Gemini", resp.status_code, f"model={model} body={body_preview}")
+
+    try:
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except (ValueError, KeyError, IndexError) as exc:
+        raise LLMAPIError("Gemini", resp.status_code, f"unexpected response structure: {resp.text[:300]}") from exc
 
 
 def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) -> str:
-    """OpenAI 호환 Chat Completions API를 호출해 JSON 응답 문자열을 받아옵니다."""
-    resp = requests.post(
-        base_url.rstrip("/") + "/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "temperature": 0.4,
-            "response_format": {"type": "json_object"},
-            "messages": [
-                {"role": "system", "content": "You are a Korean AI magazine editor. Output valid JSON only."},
-                {"role": "user", "content": prompt},
-            ],
-        },
-        timeout=REQUEST_TIMEOUT * 2,
+    """OpenAI 호환 Chat Completions API를 호출하고 실패 시 정확한 HTTP 상태코드·에러 본문을 기록합니다."""
+    url = base_url.rstrip("/") + "/chat/completions"
+    try:
+        resp = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": model,
+                "temperature": 0.35,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": "You are a Korean AI magazine editor. Output valid JSON in Korean only."},
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=REQUEST_TIMEOUT * 3,
+        )
+    except requests.RequestException as exc:
+        raise LLMAPIError("OpenAI", None, _mask_secret(str(exc), api_key)) from exc
+
+    if not resp.ok:
+        body_preview = _mask_secret(resp.text[:500].replace("\n", " "), api_key)
+        raise LLMAPIError("OpenAI", resp.status_code, f"model={model} body={body_preview}")
+
+    try:
+        return resp.json()["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError) as exc:
+        raise LLMAPIError("OpenAI", resp.status_code, f"unexpected response structure: {resp.text[:300]}") from exc
+
+
+def translate_github_descriptions(
+    repos: List[Dict[str, str]],
+    gemini_api_key: Optional[str] = None,
+    openai_api_key: Optional[str] = None,
+) -> Dict[str, str]:
+    """GitHub 급상승 저장소 TOP 5의 영문 1줄 설명을 자연스러운 한국어로 일괄 번역합니다."""
+    g_key = GEMINI_API_KEY if gemini_api_key is None else gemini_api_key
+    o_key = OPENAI_API_KEY if openai_api_key is None else openai_api_key
+    if not repos or (not g_key and not o_key):
+        return {}
+
+    prompt = (
+        "아래 GitHub AI 오픈소스 저장소 목록의 영문 설명을 각각 40자 이내의 자연스러운 한국어 1줄 설명으로 번역해 "
+        "{\"repo_name\": \"한국어 설명\"} 형식의 JSON 객체만 출력하세요.\n"
+        + json.dumps(repos, ensure_ascii=False)
     )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    try:
+        raw = (
+            _call_gemini(prompt, g_key, GEMINI_MODEL)
+            if g_key
+            else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
+        )
+        parsed = _extract_json_payload(raw)
+        if isinstance(parsed, dict):
+            return {str(k): truncate_text(str(v), 80) for k, v in parsed.items() if v}
+    except Exception as exc:
+        logger.warning("GitHub description translation failed (keeping originals): %s", exc)
+    return {}
 
 
 def build_fallback_edition(items: List[RawItem], date_str: str, issue_no: int) -> Edition:
-    """LLM API가 없거나 오류가 나도 파이프라인이 멈추지 않도록 규칙 기반으로 유효한 에디션을 조립합니다."""
+    """LLM API가 없거나 오류가 나도 파이프라인이 멈추지 않도록 수집된 메타·댓글 기반으로 폴백 에디션을 조립합니다."""
     compact = date_str.replace("-", "")
     day_seed = sum(ord(ch) for ch in compact)
 
@@ -183,7 +260,7 @@ def build_fallback_edition(items: List[RawItem], date_str: str, issue_no: int) -
         title="오픈웨이트 AI 모델과 에이전트 도구 생태계 주간 핵심 동향",
         url="https://news.hada.io/",
         source="GeekNews",
-        summary="최신 오픈웨이트 모델의 로컬 추론 효율과 표준 프로토콜 연동 사례가 빠르게 확산되고 있습니다.",
+        summary="로컬 추론 효율을 높인 32B급 오픈웨이트 모델과 표준 MCP 연동 도구가 빠르게 확산되고 있습니다.",
     )
     hot_src = news_items[1] if len(news_items) >= 2 else RawItem(
         title="개발자 커뮤니티에서 주목받는 AI 워크플로 자동화 실전 사례",
@@ -203,8 +280,19 @@ def build_fallback_edition(items: List[RawItem], date_str: str, issue_no: int) -
     term, analogy, office_line = FALLBACK_TERMS[day_seed % len(FALLBACK_TERMS)]
     lunch_quote = FALLBACK_LUNCH_QUOTES[day_seed % len(FALLBACK_LUNCH_QUOTES)]
 
-    hero_summary_base = hero_src.summary or f"{hero_src.source}에서 오늘 가장 높은 주목을 받은 AI 이슈입니다."
-    hot_summary_base = hot_src.summary or f"{hot_src.source}에서 활발히 논의 중인 핵심 기술 토픽입니다."
+    hero_meta = hero_src.extra.get("meta_description") or hero_src.summary
+    hero_comments = hero_src.extra.get("top_comments") or []
+    hot_meta = hot_src.extra.get("meta_description") or hot_src.summary
+
+    hero_lines = [
+        truncate_text(hero_meta or hero_src.title, 110),
+        truncate_text(hero_comments[0], 110) if hero_comments else f"{hero_src.source} 기준 추천 {hero_src.score}·댓글 {hero_src.comments}건이 모인 핵심 기술 이슈입니다.",
+        "LLM API 폴백 모드로 생성된 요약이며, 상세 기술 배경은 원문 링크에서 확인할 수 있습니다.",
+    ]
+    hot_lines = [
+        truncate_text(hot_meta or hot_src.title, 110),
+        f"{hot_src.source}에서 추천 {hot_src.score}·댓글 {hot_src.comments}건과 함께 실전 적용 논의가 이어지고 있습니다.",
+    ]
 
     repo_name = pick_src.extra.get("repo_name")
     copy_text = (
@@ -213,23 +301,23 @@ def build_fallback_edition(items: List[RawItem], date_str: str, issue_no: int) -
         else 'npx repomix --style markdown --ignore "**/*.test.*"'
     )
 
-    built_buzz: List[BuzzItem] = [
-        BuzzItem(
-            id=f"{compact}-b{idx}",
-            tag="커뮤니티 논쟁",
-            title=truncate_text(b.title, 70),
-            context=truncate_text(
-                b.summary or f"{b.source}에서 댓글과 토론이 집중되고 있는 오늘의 화제 이슈입니다.",
-                140,
-            ),
-            pro_side="생산성과 개발 속도를 실질적으로 끌어올리는 전환점이라는 긍정적 평가가 이어집니다.",
-            con_side="보안·신뢰성·비용 검증이 충분히 끝나기 전 성급한 도입은 경계해야 한다는 신중론도 팽팽합니다.",
-            comment_count=max(b.comments, 50),
-            source=b.source,
-            url=b.url,
+    built_buzz: List[BuzzItem] = []
+    for idx, b in enumerate(buzz_items[:3], start=1):
+        b_comments = b.extra.get("top_comments") or []
+        b_context = b.extra.get("meta_description") or b.summary or f"{b.source}에서 댓글 {b.comments}건이 달린 화제 논쟁입니다."
+        built_buzz.append(
+            BuzzItem(
+                id=f"{compact}-b{idx}",
+                tag="커뮤니티 논쟁",
+                title=truncate_text(b.title, 70),
+                context=truncate_text(b_context, 140),
+                pro_side=truncate_text(b_comments[0], 120) if len(b_comments) >= 1 else "생산성과 개발 속도를 실질적으로 끌어올리는 전환점이라는 긍정적 평가가 이어집니다.",
+                con_side=truncate_text(b_comments[1], 120) if len(b_comments) >= 2 else "보안·신뢰성·비용 검증이 충분히 끝나기 전 성급한 도입은 경계해야 한다는 신중론도 팽팽합니다.",
+                comment_count=max(b.comments, 50),
+                source=b.source,
+                url=b.url,
+            )
         )
-        for idx, b in enumerate(buzz_items[:3], start=1)
-    ]
 
     if not built_buzz:
         built_buzz.append(
@@ -255,21 +343,14 @@ def build_fallback_edition(items: List[RawItem], date_str: str, issue_no: int) -
                 id=f"{compact}-n1",
                 category="BIG NEWS",
                 title=truncate_text(hero_src.title, 60),
-                summary=[
-                    truncate_text(hero_summary_base, 110),
-                    f"출처({hero_src.source}) 기준 오늘 수집된 AI 후보 중 가장 높은 화제성을 기록했습니다.",
-                    "상세 기술 배경과 커뮤니티 반응은 하단 원문 링크에서 바로 확인할 수 있습니다.",
-                ],
+                summary=hero_lines,
                 source=hero_src.source,
                 url=hero_src.url,
             ),
             hot_issue=HotIssue(
                 id=f"{compact}-n2",
                 title=truncate_text(hot_src.title, 70),
-                summary=[
-                    truncate_text(hot_summary_base, 110),
-                    f"{hot_src.source} 개발자들 사이에서 실무 적용 가능성을 두고 주목받고 있습니다.",
-                ],
+                summary=hot_lines,
                 source=hot_src.source,
                 url=hot_src.url,
             ),
@@ -303,15 +384,21 @@ def curate_edition(
     gemini_api_key: Optional[str] = None,
     openai_api_key: Optional[str] = None,
 ) -> Edition:
-    """LLM으로 에디션을 생성(실패 시 1회 재시도)하고, 모두 실패하면 규칙 기반 폴백을 반환합니다."""
+    """LLM으로 100% 한국어 에디션을 생성(실패 시 1회 재시도)하고, 폴백 시 정확한 HTTP 상태코드·원인을 로깅합니다."""
     g_key = GEMINI_API_KEY if gemini_api_key is None else gemini_api_key
     o_key = OPENAI_API_KEY if openai_api_key is None else openai_api_key
 
-    if not items or (not g_key and not o_key):
-        logger.info("Using rule-based fallback curator (items=%d, llm_configured=%s)", len(items), bool(g_key or o_key))
+    if not items:
+        logger.warning("FALLBACK_REASON: collected 0 candidate items; switching to rule-based fallback.")
         return build_fallback_edition(items, date_str, issue_no)
 
+    if not g_key and not o_key:
+        logger.warning("FALLBACK_REASON: neither GEMINI_API_KEY nor OPENAI_API_KEY is set; switching to rule-based fallback.")
+        return build_fallback_edition(items, date_str, issue_no)
+
+    provider = f"Gemini({GEMINI_MODEL})" if g_key else f"OpenAI({OPENAI_MODEL})"
     prompt = _build_editor_prompt(items, date_str, issue_no)
+    last_error = "unknown error"
 
     for attempt in range(1, 3):
         try:
@@ -320,14 +407,28 @@ def curate_edition(
                 if g_key
                 else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
             )
-            parsed = _extract_json_object(raw)
+            parsed = _extract_json_payload(raw)
             parsed["date"] = date_str
             parsed["issue_no"] = issue_no
             edition = Edition.model_validate(parsed)
-            logger.info("LLM curation succeeded on attempt %d", attempt)
+            logger.info("LLM curation succeeded via %s on attempt %d", provider, attempt)
             return edition
-        except (requests.RequestException, KeyError, ValueError, json.JSONDecodeError, ValidationError) as exc:
-            logger.warning("LLM curation attempt %d failed: %s", attempt, exc)
+        except LLMAPIError as exc:
+            last_error = str(exc)
+            logger.error(
+                "LLM API call failed on attempt %d/2 (%s, status=%s): %s",
+                attempt,
+                exc.provider,
+                exc.status_code,
+                exc.detail,
+            )
+        except (KeyError, ValueError, json.JSONDecodeError, ValidationError) as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+            logger.error("LLM output parsing/schema validation failed on attempt %d/2 (%s): %s", attempt, provider, last_error)
 
-    logger.warning("All LLM attempts failed; falling back to rule-based edition.")
+    logger.error(
+        "FALLBACK_TRIGGERED: All LLM attempts failed via %s. Last error: %s. Generating rule-based fallback edition.",
+        provider,
+        last_error,
+    )
     return build_fallback_edition(items, date_str, issue_no)

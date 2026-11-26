@@ -40,9 +40,11 @@
     return `${String(m).padStart(2, "0")}.${String(d).padStart(2, "0")} ${wd}`;
   }
 
-  // 지정된 경로에서 JSON 파일을 불러오고, 실패 시 오류를 발생시킵니다.
+  // 지정된 경로에서 JSON 파일을 항상 최신 상태로 불러옵니다(iOS PWA 캐시 버스팅 적용).
   async function fetchJSON(path) {
-    const res = await fetch(path, { cache: "no-cache" });
+    const sep = path.includes("?") ? "&" : "?";
+    const bustUrl = `${path}${sep}_t=${Date.now()}`;
+    const res = await fetch(bustUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
     return res.json();
   }

@@ -12,6 +12,7 @@ EDITIONS_DIR = DATA_DIR / "editions"
 
 # HTTP / Networking
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "12"))
+ARTICLE_META_TIMEOUT = int(os.getenv("ARTICLE_META_TIMEOUT", "5"))
 USER_AGENT = "MorningAIZine/1.0 (+https://github.com/morning-ai-zine)"
 MAX_WORKERS = 6
 LOOKBACK_HOURS = 24
@@ -20,6 +21,8 @@ LOOKBACK_HOURS = 24
 HN_MIN_SCORE = 100
 HN_MIN_COMMENTS = 50
 HN_MAX_STORIES_TO_CHECK = 60
+HN_TOP_COMMENTS_LIMIT = 5
+TOP_CANDIDATES_TO_ENRICH = 15
 
 # Deduplication threshold (R1: >= 80% title similarity)
 TITLE_SIMILARITY_THRESHOLD = 0.80
@@ -51,6 +54,7 @@ HN_BEST_STORIES_URL = "https://hacker-news.firebaseio.com/v0/beststories.json"
 HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{item_id}.json"
 
 HF_DAILY_PAPERS_URL = "https://huggingface.co/api/daily_papers"
+HF_TRENDING_MODELS_URL = "https://huggingface.co/api/models"
 GITHUB_SEARCH_REPOS_URL = "https://api.github.com/search/repositories"
 
 # AI / LLM relevance filter keywords (case-insensitive)
@@ -105,6 +109,7 @@ AI_KEYWORDS = (
 )
 
 # LLM Editor Configuration (Gemini Free Tier / OpenAI-compatible fallback)
+# 무료 티어에서 안정적으로 동작하는 최신 Gemini Flash 모델 기본값
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

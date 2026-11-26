@@ -5,13 +5,16 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pipeline.collect import RawItem
 from pipeline.config import DATA_DIR
+from pipeline.curate import translate_github_descriptions
 from pipeline.schema import (
     Edition,
     GithubTrendingRepo,
+    ModelRankEntry,
+    ModelRankings,
     PickArchiveItem,
     PicksArchive,
     RadarData,
@@ -120,29 +123,83 @@ def update_picks_archive(edition: Edition, data_dir: Path = DATA_DIR) -> Path:
     return picks_path
 
 
+def _format_week_label(date_str: str) -> str:
+    """YYYY-MM-DD 날짜를 '2026년 11월 4주차' 형식 라벨로 바꿉니다."""
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        week_of_month = (dt.day - 1) // 7 + 1
+        return f"{dt.year}년 {dt.month}월 {week_of_month}주차"
+    except ValueError:
+        return date_str
+
+
+def _build_ranked_category(
+    new_models: List[Dict[str, Any]],
+    prev_entries: List[ModelRankEntry],
+) -> List[ModelRankEntry]:
+    """지난주 순위와 비교해 실제 순위 변동(▲/▼/NEW)을 계산합니다."""
+    prev_rank_map = {entry.name.lower(): entry.rank for entry in prev_entries}
+    ranked: List[ModelRankEntry] = []
+
+    for rank, item in enumerate(new_models[:5], start=1):
+        name = item["name"]
+        prev_rank = prev_rank_map.get(name.lower())
+        delta: Union[int, str] = "NEW" if prev_rank is None else (prev_rank - rank)
+        ranked.append(
+            ModelRankEntry(
+                rank=rank,
+                name=name,
+                provider=item.get("provider") or "Community",
+                score=float(item.get("score") or 0),
+                delta=delta,  # type: ignore[arg-type]
+                metric_label=item.get("metric_label"),
+                url=item.get("url"),
+            )
+        )
+    return ranked
+
+
 def update_radar(
     github_items: List[RawItem],
+    hf_models: Optional[Dict[str, List[Dict[str, Any]]]] = None,
     date_str: Optional[str] = None,
     data_dir: Path = DATA_DIR,
 ) -> Optional[Path]:
-    """주간 판도(radar.json)의 GitHub 급상승 TOP 5만 최신화하고 기존 모델 순위는 보존합니다."""
+    """주간 판도(radar.json)의 GitHub 급상승 TOP 5(한국어 번역 포함)와 HuggingFace 실데이터 모델 순위를 갱신합니다."""
     radar_path = data_dir / "radar.json"
-    if not radar_path.exists():
-        logger.warning("radar.json does not exist; skipping weekly radar update.")
-        return None
+    today = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    try:
-        existing = RadarData.model_validate(read_json(radar_path))
-    except Exception as exc:
-        logger.warning("Existing radar.json invalid: %s", exc)
-        return None
+    existing: Optional[RadarData] = None
+    if radar_path.exists():
+        try:
+            existing = RadarData.model_validate(read_json(radar_path))
+        except Exception as exc:
+            logger.warning("Existing radar.json invalid: %s", exc)
 
+    if existing is None:
+        existing = RadarData(
+            updated_at=today,
+            week_label=_format_week_label(today),
+            source="GitHub Search API · HuggingFace Trending Models",
+            github_trending_top5=[],
+            model_rankings=ModelRankings(),
+        )
+
+    # 1) GitHub 급상승 TOP 5 갱신 + LLM 한국어 1줄 설명 번역
     if len(github_items) >= 5:
+        raw_repos = [
+            {
+                "name": item.extra.get("repo_name") or item.title.split(":")[0].strip(),
+                "description": item.summary or item.title,
+            }
+            for item in github_items[:5]
+        ]
+        ko_map = translate_github_descriptions(raw_repos)
         existing.github_trending_top5 = [
             GithubTrendingRepo(
                 rank=rank,
-                name=item.extra.get("repo_name") or item.title.split(":")[0].strip(),
-                description=item.summary or item.title,
+                name=raw_repos[rank - 1]["name"],
+                description=ko_map.get(raw_repos[rank - 1]["name"], raw_repos[rank - 1]["description"]),
                 weekly_stars=int(item.extra.get("stars") or item.score),
                 language=item.extra.get("language") or None,
                 url=item.url,
@@ -150,6 +207,18 @@ def update_radar(
             for rank, item in enumerate(github_items[:5], start=1)
         ]
 
-    existing.updated_at = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # 2) HuggingFace 실시간 트렌딩 모델 API 데이터로 부문별 TOP 5 + 전주 대비 순위 변동 계산
+    if hf_models:
+        prev = existing.model_rankings
+        existing.model_rankings = ModelRankings(
+            coding=_build_ranked_category(hf_models.get("coding", []), prev.coding) or prev.coding,
+            reasoning=_build_ranked_category(hf_models.get("reasoning", []), prev.reasoning) or prev.reasoning,
+            local=_build_ranked_category(hf_models.get("local", []), prev.local) or prev.local,
+        )
+
+    existing.updated_at = today
+    existing.week_label = _format_week_label(today)
+    existing.source = "GitHub Search API · HuggingFace Trending Models"
     write_json(radar_path, existing.model_dump())
+    logger.info("Updated radar.json for %s", today)
     return radar_path

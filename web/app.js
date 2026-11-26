@@ -275,28 +275,75 @@
     label.textContent = count >= 5 ? "5 / 5 완료 ☕" : `${count} / 5 카드 · ${readMin}분 컷`;
   }
 
-  /* ---------------- 날짜별 에디션 로딩 (메모리 캐시 적용) ---------------- */
+  /* ---------------- 날짜별 에디션 로딩 (메모리 캐시 · 스켈레톤 · 누락 폴백) ---------------- */
+
+  // 네트워크 지연 시 빈 화면 대신 보여줄 스켈레톤 카드 HTML을 생성합니다.
+  function renderSkeleton(count = 3) {
+    return Array.from({ length: count })
+      .map(
+        () => `
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line title"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+      </div>`
+      )
+      .join("");
+  }
+
+  // 특정 날짜의 에디션 JSON이 없거나 불러오지 못했을 때 안전한 복구 화면을 표시합니다.
+  function renderMissingEditionFallback(dateStr) {
+    const latestDate = state.dates[0];
+    const canJumpLatest = latestDate && latestDate !== dateStr;
+    const html = `
+      <div class="empty-state">
+        <strong>${escapeHTML(dateStr)}</strong> 호수의 데이터를 찾을 수 없어요.<br/>
+        아직 발행되지 않았거나 일시적인 네트워크 지연일 수 있습니다.
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+          <button type="button" class="pill-btn" data-retry-date="${escapeHTML(dateStr)}">다시 시도</button>
+          ${
+            canJumpLatest
+              ? `<button type="button" class="btn-primary" data-jump-date="${escapeHTML(latestDate)}">최신 호수로 돌아가기</button>`
+              : ""
+          }
+        </div>
+      </div>`;
+    const todayFeed = document.getElementById("today-feed");
+    const buzzFeed = document.getElementById("buzz-feed");
+    if (todayFeed) todayFeed.innerHTML = html;
+    if (buzzFeed) buzzFeed.innerHTML = html;
+  }
 
   // 선택한 날짜의 에디션 JSON을 불러오고(캐시 우선), 오늘/불판 탭을 갱신합니다.
   async function loadEdition(dateStr) {
     state.currentDate = dateStr;
     state.termFlipped = false;
 
+    const select = document.getElementById("edition-select");
+    if (select && select.value !== dateStr) {
+      select.value = dateStr;
+    }
+
     let edition = editionCache.get(dateStr);
     if (!edition) {
-      edition = await fetchJSON(`./data/editions/${dateStr}.json`);
-      editionCache.set(dateStr, edition);
+      const todayFeed = document.getElementById("today-feed");
+      if (todayFeed) todayFeed.innerHTML = renderSkeleton(3);
+      try {
+        edition = await fetchJSON(`./data/editions/${dateStr}.json`);
+        editionCache.set(dateStr, edition);
+      } catch {
+        state.edition = null;
+        renderMissingEditionFallback(dateStr);
+        showToast("해당 호수를 불러오지 못했어요");
+        return;
+      }
     }
     state.edition = edition;
 
     const issueBadge = document.getElementById("issue-badge");
     if (issueBadge) {
       issueBadge.textContent = `No.${String(edition.issue_no).padStart(2, "0")}`;
-    }
-
-    const select = document.getElementById("edition-select");
-    if (select && select.value !== dateStr) {
-      select.value = dateStr;
     }
 
     renderToday();
@@ -585,7 +632,7 @@
 
       <section class="card">
         <h2 class="radar-block-title">
-          <span>부문별 LLM 순위 변동</span>
+          <span>부문별 오픈 LLM 트렌드 TOP 5</span>
           <span class="card-num">전주 대비</span>
         </h2>
         <div class="seg-tabs" role="tablist" aria-label="모델 순위 부문">
@@ -595,18 +642,20 @@
         </div>
         <div class="rank-list">
           ${rankings
-            .map(
-              (m) => `
-            <div class="rank-row">
-              <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
-              <div class="rank-model">
-                <span class="rank-model-name">${escapeHTML(m.name)}</span>
-                <span class="rank-provider">${escapeHTML(m.provider)}</span>
-              </div>
-              <span class="rank-score">${Number(m.score).toFixed(1)}</span>
-              ${renderDeltaBadge(m.delta)}
-            </div>`
-            )
+            .map((m) => {
+              const metric = m.metric_label || Number(m.score).toFixed(1);
+              const inner = `
+                <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
+                <div class="rank-model">
+                  <span class="rank-model-name">${escapeHTML(m.name)}</span>
+                  <span class="rank-provider">${escapeHTML(m.provider)}</span>
+                </div>
+                <span class="rank-score">${escapeHTML(metric)}</span>
+                ${renderDeltaBadge(m.delta)}`;
+              return m.url
+                ? `<a class="rank-row" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+                : `<div class="rank-row">${inner}</div>`;
+            })
             .join("")}
         </div>
       </section>
@@ -811,6 +860,21 @@
         return;
       }
 
+      // 누락된 호수 폴백 UI의 '다시 시도' / '최신 호수로 돌아가기' 버튼
+      const retryBtn = e.target.closest("[data-retry-date]");
+      if (retryBtn) {
+        const targetDate = retryBtn.getAttribute("data-retry-date");
+        editionCache.delete(targetDate);
+        loadEdition(targetDate);
+        return;
+      }
+
+      const jumpBtn = e.target.closest("[data-jump-date]");
+      if (jumpBtn) {
+        loadEdition(jumpBtn.getAttribute("data-jump-date"));
+        return;
+      }
+
       // 판도 탭의 모델 부문(코딩/추론/로컬) 전환
       const radarCatBtn = e.target.closest("[data-radar-cat]");
       if (radarCatBtn) {
@@ -822,38 +886,48 @@
 
   /* ---------------- 앱 최초 구동 ---------------- */
 
-  // 초기 데이터를 병렬로 불러와 첫 화면을 빠르게 렌더링합니다.
+  // 초기 데이터를 병렬로 불러오며, 일부 파일이 누락되어도 나머지 탭이 정상 동작하도록 보호합니다.
   async function init() {
     initTheme();
     updateScrapBadge();
     bindEvents();
 
-    try {
-      const [dates, picksData, radarData] = await Promise.all([
-        fetchJSON("./data/index.json"),
-        fetchJSON("./data/picks.json"),
-        fetchJSON("./data/radar.json"),
-      ]);
+    const feed = document.getElementById("today-feed");
+    if (feed) feed.innerHTML = renderSkeleton(3);
 
-      state.dates = Array.isArray(dates) ? dates : [];
+    const [datesRes, picksRes, radarRes] = await Promise.allSettled([
+      fetchJSON("./data/index.json"),
+      fetchJSON("./data/picks.json"),
+      fetchJSON("./data/radar.json"),
+    ]);
+
+    if (picksRes.status === "fulfilled") {
+      const picksData = picksRes.value;
       state.picks = Array.isArray(picksData) ? picksData : picksData.items || [];
-      state.radar = radarData;
+    } else {
+      state.picks = [];
+    }
+    renderPicks();
 
+    if (radarRes.status === "fulfilled") {
+      state.radar = radarRes.value;
+      renderRadar();
+    } else {
+      const radarEl = document.getElementById("radar-content");
+      if (radarEl) {
+        radarEl.innerHTML = `<div class="empty-state">주간 판도 데이터를 불러오지 못했어요.</div>`;
+      }
+    }
+
+    if (datesRes.status === "fulfilled" && Array.isArray(datesRes.value) && datesRes.value.length > 0) {
+      state.dates = datesRes.value;
       const select = document.getElementById("edition-select");
       select.innerHTML = state.dates
         .map((d) => `<option value="${escapeHTML(d)}">${escapeHTML(formatDateLabel(d))}</option>`)
         .join("");
-
-      if (state.dates.length > 0) {
-        await loadEdition(state.dates[0]);
-      }
-      renderPicks();
-      renderRadar();
-    } catch {
-      const feed = document.getElementById("today-feed");
-      if (feed) {
-        feed.innerHTML = `<div class="empty-state">데이터를 불러오는 중 문제가 발생했습니다.<br/>로컬 정적 서버로 실행했는지 확인해 주세요.</div>`;
-      }
+      await loadEdition(state.dates[0]);
+    } else if (feed) {
+      feed.innerHTML = `<div class="empty-state">발행된 호수 목록을 불러오지 못했습니다.<br/>네트워크 상태를 확인하거나 잠시 후 새로고침해 주세요.</div>`;
     }
   }
 

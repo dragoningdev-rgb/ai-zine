@@ -112,3 +112,62 @@ def test_fallback_curate_and_publish_without_api_key(tmp_path: Path) -> None:
 
     saved_index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
     assert saved_index == ["2026-11-27"]
+
+
+def test_gemini_http_error_logs_status_code_and_falls_back(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify Gemini API error logs exact HTTP status & masks key while falling back cleanly."""
+    from unittest.mock import MagicMock
+
+    import requests
+
+    from pipeline.collect import RawItem
+    from pipeline.curate import curate_edition
+
+    fake_resp = MagicMock()
+    fake_resp.ok = False
+    fake_resp.status_code = 429
+    fake_resp.text = '{"error": {"code": 429, "message": "Quota exceeded for key SECRET_KEY_123"}}'
+    monkeypatch.setattr(requests, "post", lambda *a, **kw: fake_resp)
+
+    items = [RawItem(title="Test AI News", url="https://example.com/ai", source="GeekNews", summary="Detailed summary")]
+    with caplog.at_level("ERROR"):
+        edition = curate_edition(items, date_str="2026-11-27", issue_no=3, gemini_api_key="SECRET_KEY_123", openai_api_key="")
+
+    assert edition.date == "2026-11-27"
+    assert "status=429" in caplog.text
+    assert "SECRET_KEY_123" not in caplog.text
+    assert "***REDACTED***" in caplog.text
+
+
+def test_update_radar_computes_real_deltas(tmp_path: Path) -> None:
+    """Verify update_radar writes real HF models and computes week-over-week rank deltas."""
+    from pipeline.build_data import update_radar
+    from pipeline.collect import RawItem
+
+    gh_items = [
+        RawItem(title=f"org/repo-{i}", url=f"https://github.com/org/repo-{i}", source="GitHub Trending", kind="tool", summary=f"AI tool {i}", score=1000 - i * 10, extra={"repo_name": f"org/repo-{i}", "stars": 1000 - i * 10, "language": "Python"})
+        for i in range(1, 6)
+    ]
+    hf_week1 = {
+        "coding": [{"name": "ModelA", "provider": "OrgA", "score": 300, "metric_label": "♥ 300", "url": "https://huggingface.co/OrgA/ModelA"}],
+        "reasoning": [{"name": "ModelR", "provider": "OrgR", "score": 500, "metric_label": "♥ 500", "url": "https://huggingface.co/OrgR/ModelR"}],
+        "local": [{"name": "ModelL", "provider": "OrgL", "score": 200, "metric_label": "♥ 200", "url": "https://huggingface.co/OrgL/ModelL"}],
+    }
+    update_radar(gh_items, hf_models=hf_week1, date_str="2026-11-23", data_dir=tmp_path)
+
+    hf_week2 = {
+        "coding": [
+            {"name": "ModelB", "provider": "OrgB", "score": 400, "metric_label": "♥ 400", "url": "https://huggingface.co/OrgB/ModelB"},
+            {"name": "ModelA", "provider": "OrgA", "score": 320, "metric_label": "♥ 320", "url": "https://huggingface.co/OrgA/ModelA"},
+        ],
+        "reasoning": hf_week1["reasoning"],
+        "local": hf_week1["local"],
+    }
+    radar_path = update_radar(gh_items, hf_models=hf_week2, date_str="2026-11-30", data_dir=tmp_path)
+    assert radar_path is not None
+
+    radar = RadarData.model_validate(json.loads(radar_path.read_text(encoding="utf-8")))
+    assert radar.model_rankings.coding[0].name == "ModelB"
+    assert radar.model_rankings.coding[0].delta == "NEW"
+    assert radar.model_rankings.coding[1].name == "ModelA"
+    assert radar.model_rankings.coding[1].delta == -1
