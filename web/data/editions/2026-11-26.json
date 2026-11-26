@@ -21,7 +21,7 @@
       "title": "Jev is probably Qwen3.5-35B-A3B",
       "summary": [
         "TypeSafe doesn't disclose Jev's backbone. Self-identification, tokenizer, and throughput tests all point to Q…",
-        "Hacker News에서 추천 270·댓글 75건과 함께 실전 적용 논의가 이어지고 있습니다."
+        "Hacker News에서 추천 277·댓글 76건과 함께 실전 적용 논의가 이어지고 있습니다."
       ],
       "takeaway": null,
       "source": "Hacker News",
@@ -49,24 +49,24 @@
     {
       "id": "20261126-b1",
       "tag": "커뮤니티 논쟁",
-      "title": "Much shorter version of GRH Lean verification from Anthropic",
-      "context": "A short Lean 4 proof of the Generalized Riemann Hypothesis - lsernau/grh-lean",
-      "pro_side": "Nice! The more readable 300kloc proof even has a clear \"known math\" vs \"new math\" split and human-readable documentatio…",
-      "con_side": "From ~17M lines to just ~76k lines, a 99.56% reduction.",
-      "comment_count": 177,
+      "title": "The New York Times warns photographers not to update Photoshop over A…",
+      "context": "The NYT doesn’t want AI metadata inadvertently added to its photos.",
+      "pro_side": "I had a NYT photographer take my picture at my home earlier this year (for a story about Moltbook, oddly enough). At on…",
+      "con_side": "I work in the creative tools space. This is one of the biggest issues right now. It's nearly impossible to separate \"th…",
+      "comment_count": 246,
       "source": "Hacker News",
-      "url": "https://github.com/lsernau/grh-lean"
+      "url": "https://theverge.com/ai-artificial-intelligence/1041227/the-new-york-times-warns-photographers-not-to-update-photoshop-over-ai-features"
     },
     {
       "id": "20261126-b2",
       "tag": "커뮤니티 논쟁",
-      "title": "The New York Times warns photographers not to update Photoshop over A…",
-      "context": "The NYT doesn’t want AI metadata inadvertently added to its photos.",
-      "pro_side": "I work in the creative tools space. This is one of the biggest issues right now. It's nearly impossible to separate \"th…",
-      "con_side": "Vanishingly few people _enjoy_ encountering generative AI in images or sounds in the wild. The most likely positive sen…",
-      "comment_count": 231,
+      "title": "Much shorter version of GRH Lean verification from Anthropic",
+      "context": "A short Lean 4 proof of the Generalized Riemann Hypothesis - lsernau/grh-lean",
+      "pro_side": "Nice! The more readable 300kloc proof even has a clear \"known math\" vs \"new math\" split and human-readable documentatio…",
+      "con_side": "From ~17M lines to just ~76k lines, a 99.56% reduction.",
+      "comment_count": 180,
       "source": "Hacker News",
-      "url": "https://theverge.com/ai-artificial-intelligence/1041227/the-new-york-times-warns-photographers-not-to-update-photoshop-over-ai-features"
+      "url": "https://github.com/lsernau/grh-lean"
     },
     {
       "id": "20261126-b3",
