@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-27",
+  "issue_no": 3,
+  "read_time_min": 3,
+  "brief": {
+    "hero_news": {
+      "id": "20261127-n1",
+      "category": "BIG NEWS",
+      "title": "오픈에이아이, GPT-6.2 비용 절감 튜닝으로 사용량 한도 조기 소진 논란",
+      "summary": [
+        "오픈에이아이가 최근 출시한 GPT-6.2 아스트라와 솔 모델이 비용 절감 목적의 튜닝으로 인해 출력 토큰 및 추론 토큰이 대폭 감소했다는 분석이 제기되었습니다.",
+        "사용자 데이터에 따르면 동일 작업 수행 시 아스트라는 40%, 솔은 25% 더 빠르게 할당 한도에 도달하는 것으로 나타났습니다.",
+        "출시 초기 요금 계산 오류 문제까지 겹치면서 개발자 커뮤니티에서는 구독 가치와 토큰 할당량의 안정성에 대한 불만이 확산되고 있습니다."
+      ],
+      "takeaway": "API 비용 최적화 주기를 점검하고 모델별 토큰 소모량을 모니터링하세요.",
+      "source": "Hacker News",
+      "url": "https://twitter.com/thsottiaux/status/2125784147889393806"
+    },
+    "hot_issue": {
+      "id": "20261127-n2",
+      "title": "구글, 2027년 2월부터 워크스페이스 AI 에이전트에 자사 MCP 서버 강제",
+      "summary": [
+        "구글은 2027년 2월부터 지메일, 드라이브 등 워크스페이스 데이터를 연동하는 모든 외부 AI 에이전트가 자사 MCP 서버를 거치도록 이용 약관을 변경합니다.",
+        "일부 기능의 제한과 에이전트 연동의 폐쇄성 우려로 인해 개발자들 사이에서 오픈소스 인프라 대안을 모색하는 움직임이 가속화되고 있습니다."
+      ],
+      "takeaway": "사내 워크스페이스 연동 에이전트의 API 종속성 리스크를 미리 대비하세요.",
+      "source": "Hacker News",
+      "url": "https://techstackups.com/articles/google-workspace-ai-agents-mcp"
+    },
+    "term_of_day": {
+      "id": "20261127-t1",
+      "term": "MCP (Model Context Protocol)",
+      "analogy": "AI 에이전트가 외부 데이터베이스나 툴에 접근할 때 사용하는 표준 '만능 USB 허브'입니다.",
+      "office_line": "회의실 멘트: 구글이 워크스페이스 MCP를 통제한다고 하니, 사내 에이전트 연동 규격 검토해봐야겠네요."
+    },
+    "daily_pick": {
+      "id": "20261127-p1",
+      "type": "tool",
+      "title": "Firecrawl",
+      "description": "웹사이트 검색, 스크래핑, 550개 이상의 데이터 제공자 연동을 단 하나의 API로 통합하여 AI 에이전트의 지식 인프라를 강화하는 도구입니다.",
+      "copy_text": "npx firecrawl-cli scrape https://example.com",
+      "url": "https://github.com/firecrawl/firecrawl"
+    },
+    "lunch_talk": {
+      "quote": "토큰 가격은 내려가는데 쓸 수 있는 할당량은 더 빨리 닳아버리니, AI  구독도 점차 '가성비' 따져야 하는 시대가 왔네요."
+    }
+  },
+  "buzz": [
+    {
+      "id": "20261127-b1",
+      "tag": "논쟁",
+      "title": "포토샵 AI 기능 업데이트, 뉴욕타임스의 사진가 사용 경고 논란",
+      "context": "뉴욕타임스가 소속 사진가들에게 생성형 AI 메타데이터가 의도치 않게 포함될 수 있는 최신 포토샵 업데이트를 하지 말라고 경고하면서 크리에이티브 업계의 AI 활용 기준을 두고 갑론을박이 이어지고 있습니다.",
+      "pro_side": "콘텐츠의 진위성과 저작권 신뢰를 지키기 위해 언론사 차원에서 AI 도구 사용을 엄격히 통제하는 것은 정당한 조치입니다.",
+      "con_side": "단순 색상 보정이나 내용 인식 채우기 같은 기존 머신러닝 기반 툴과 생성형 AI를 무조건 동일시하는 것은 과도한 규제입니다.",
+      "comment_count": 513,
+      "source": "Hacker News",
+      "url": "https://theverge.com/ai-artificial-intelligence/1041227/the-new-york-times-warns-photographers-not-to-update-photoshop-over-ai-features"
+    }
+  ]
+}

@@ -1,6 +1,28 @@
 {
-  "updated_at": "2026-11-26",
+  "updated_at": "2026-11-27",
   "items": [
+    {
+      "id": "20261127-p1",
+      "date": "2026-11-27",
+      "tag": "#툴",
+      "type": "tool",
+      "title": "Firecrawl",
+      "description": "웹사이트 검색, 스크래핑, 550개 이상의 데이터 제공자 연동을 단 하나의 API로 통합하여 AI 에이전트의 지식 인프라를 강화하는 도구입니다.",
+      "copy_text": "npx firecrawl-cli scrape https://example.com",
+      "office_line": null,
+      "url": "https://github.com/firecrawl/firecrawl"
+    },
+    {
+      "id": "20261127-t1",
+      "date": "2026-11-27",
+      "tag": "#신조어",
+      "type": "term",
+      "title": "MCP (Model Context Protocol)",
+      "description": "AI 에이전트가 외부 데이터베이스나 툴에 접근할 때 사용하는 표준 '만능 USB 허브'입니다.",
+      "copy_text": null,
+      "office_line": "회의실 멘트: 구글이 워크스페이스 MCP를 통제한다고 하니, 사내 에이전트 연동 규격 검토해봐야겠네요.",
+      "url": null
+    },
     {
       "id": "20261126-p1",
       "date": "2026-11-26",
