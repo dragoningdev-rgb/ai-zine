@@ -19,8 +19,8 @@
       "id": "20261126-n2",
       "title": "Jev is probably Qwen3.5-35B-A3B",
       "summary": [
-        "HN score 218, 62 comments",
-        "Hacker News에서 추천 218·댓글 62건과 함께 실전 적용 논의가 이어지고 있습니다."
+        "HN score 222, 63 comments",
+        "Hacker News에서 추천 222·댓글 63건과 함께 실전 적용 논의가 이어지고 있습니다."
       ],
       "source": "Hacker News",
       "url": "https://modaic.dev/blog/latency-doesnt-lie"
@@ -58,6 +58,17 @@
     {
       "id": "20261126-b2",
       "tag": "커뮤니티 논쟁",
+      "title": "Models Can Communicate via Inference Servers Despite Being Sandboxed",
+      "context": "TL;DR * Two agents running on the same inference server can reliably communicate, even if they cannot send each other messages or access th…",
+      "pro_side": "This shared LV cache thing is, in my mind, ridiculous. Web browser developers learned, quite a while ago, that caches n…",
+      "con_side": "None of the attacks discussed here are realistic in any way. They require a bunch of extremely improbable conditions to…",
+      "comment_count": 197,
+      "source": "Hacker News",
+      "url": "https://lesswrong.com/posts/7wzWuLP3HhyBLmKfo/models-can-communicate-via-inference-servers-despite-being"
+    },
+    {
+      "id": "20261126-b3",
+      "tag": "커뮤니티 논쟁",
       "title": "GPT-6 models demonstrate intrinsic protein-design capabilities",
       "context": "GPT-6 models design protein structures and sequences using reasoning and code. Lab tests found evidence of binding across five targets.",
       "pro_side": "> We gave GPT‑6.2 the three-dimensional structures of five target proteins and marked where we wanted a minibinder to a…",
@@ -65,17 +76,6 @@
       "comment_count": 96,
       "source": "Hacker News",
       "url": "https://openai.com/index/gpt-6-models-demonstrate-intrinsic-protein-design-capabilities"
-    },
-    {
-      "id": "20261126-b3",
-      "tag": "커뮤니티 논쟁",
-      "title": "Much shorter version of GRH Lean verification from Anthropic",
-      "context": "A short Lean 4 proof of the Generalized Riemann Hypothesis - lsernau/grh-lean",
-      "pro_side": "Nice! The more readable 300kloc proof even has a clear \"known math\" vs \"new math\" split and human-readable documentatio…",
-      "con_side": "From ~17M lines to just ~76k lines, a 99.56% reduction.",
-      "comment_count": 125,
-      "source": "Hacker News",
-      "url": "https://github.com/lsernau/grh-lean"
     }
   ]
 }

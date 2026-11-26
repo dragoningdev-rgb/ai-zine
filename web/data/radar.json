@@ -51,7 +51,7 @@
         "name": "LingSante-3.1-flash",
         "provider": "inclusionAI",
         "score": 134.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 192",
         "url": "https://huggingface.co/inclusionAI/LingSante-3.1-flash"
       },
@@ -60,7 +60,7 @@
         "name": "MemT-1.0-Pro",
         "provider": "MemTensor",
         "score": 93.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 130",
         "url": "https://huggingface.co/MemTensor/MemT-1.0-Pro"
       },
@@ -69,7 +69,7 @@
         "name": "Raon-1-mini",
         "provider": "KRAFTON",
         "score": 93.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 114",
         "url": "https://huggingface.co/KRAFTON/Raon-1-mini"
       },
@@ -78,7 +78,7 @@
         "name": "Olala-v1.0-mini-7A1B",
         "provider": "OVHaiLLM",
         "score": 63.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 349",
         "url": "https://huggingface.co/OVHaiLLM/Olala-v1.0-mini-7A1B"
       },
@@ -86,9 +86,9 @@
         "rank": 5,
         "name": "Aion-1.0-Instruct-2.3B",
         "provider": "microsoft",
-        "score": 53.0,
-        "delta": "NEW",
-        "metric_label": "♥ 346",
+        "score": 53.5,
+        "delta": 0,
+        "metric_label": "♥ 347",
         "url": "https://huggingface.co/microsoft/Aion-1.0-Instruct-2.3B"
       }
     ],
@@ -98,7 +98,7 @@
         "name": "Kolibri-1.1",
         "provider": "Aleph-Alpha",
         "score": 116.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 155",
         "url": "https://huggingface.co/Aleph-Alpha/Kolibri-1.1"
       },
@@ -106,9 +106,9 @@
         "rank": 2,
         "name": "Inkling-2-Mini-abliterated-GGUF",
         "provider": "orcarouter",
-        "score": 111.3,
-        "delta": "NEW",
-        "metric_label": "♥ 221",
+        "score": 112.0,
+        "delta": 0,
+        "metric_label": "♥ 222",
         "url": "https://huggingface.co/orcarouter/Inkling-2-Mini-abliterated-GGUF"
       },
       {
@@ -116,7 +116,7 @@
         "name": "Olala-v1.0-mini-7A1B-GGUF",
         "provider": "OVHaiLLM",
         "score": 29.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 93",
         "url": "https://huggingface.co/OVHaiLLM/Olala-v1.0-mini-7A1B-GGUF"
       },
@@ -125,7 +125,7 @@
         "name": "Inkling-2-Mini-DFlash2",
         "provider": "incoai",
         "score": 21.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 22",
         "url": "https://huggingface.co/incoai/Inkling-2-Mini-DFlash2"
       },
@@ -134,7 +134,7 @@
         "name": "Inkling-2-Mini-Fast-GGUF",
         "provider": "Lucebox",
         "score": 20.0,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 20",
         "url": "https://huggingface.co/Lucebox/Inkling-2-Mini-Fast-GGUF"
       }
@@ -144,9 +144,9 @@
         "rank": 1,
         "name": "Ternary-Bonsai-2.5-27B-GGUF",
         "provider": "prism-ml",
-        "score": 294.0,
-        "delta": "NEW",
-        "metric_label": "♥ 335",
+        "score": 298.0,
+        "delta": 0,
+        "metric_label": "♥ 339",
         "url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2.5-27B-GGUF"
       },
       {
@@ -154,7 +154,7 @@
         "name": "NVIDIA-Nemotron-3.5-Bolt-E4B-4GB",
         "provider": "nvidia",
         "score": 51.5,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 1,545",
         "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Bolt-E4B-4GB"
       },
@@ -163,7 +163,7 @@
         "name": "Meta-Llama-3-8B-Instruct",
         "provider": "meta-llama",
         "score": 48.5,
-        "delta": "NEW",
+        "delta": 0,
         "metric_label": "♥ 6,685",
         "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct"
       },
@@ -171,17 +171,17 @@
         "rank": 4,
         "name": "Ternary-Bonsai-2.5-27B-Uncensored-GGUF",
         "provider": "AtomicChat",
-        "score": 43.4,
-        "delta": "NEW",
-        "metric_label": "♥ 83",
+        "score": 44.1,
+        "delta": 0,
+        "metric_label": "♥ 84",
         "url": "https://huggingface.co/AtomicChat/Ternary-Bonsai-2.5-27B-Uncensored-GGUF"
       },
       {
         "rank": 5,
         "name": "Llama-3.1-8B-Instruct",
         "provider": "meta-llama",
-        "score": 34.0,
-        "delta": "NEW",
+        "score": 33.0,
+        "delta": 0,
         "metric_label": "♥ 9,116",
         "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
       }
