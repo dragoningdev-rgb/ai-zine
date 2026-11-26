@@ -543,9 +543,9 @@ def fetch_hf_daily_papers(session: Optional[requests.Session] = None) -> List[Ra
     return items
 
 
-# 폐쇄망 오픈LLM 수집 시 개인 양자화·검열제거·병합 파생 모델을 엄격히 차단하는 정규식
+# 폐쇄망 오픈LLM 수집 시 개인 양자화·검열제거·병합·비LLM 파생 모델을 엄격히 차단하는 정규식
 OPEN_LLM_EXCLUDE_RE = re.compile(
-    r"(gguf|abliterated|uncensored|heretic|merged|merge|exl2|exl3|mlx|awq|gptq|bnb|4bit|8bit|fp4|lora|adapter|base$|-base\b|vision-preview|embed|rerank|reward|guard|omni|audio|tts|asr|ocr|vl$|vl-)",
+    r"(gguf|abliterated|uncensored|heretic|merged|merge|exl2|exl3|mlx|awq|gptq|bnb|4bit|8bit|fp4|lora|adapter|base$|-base\b|embed|rerank|reward|guard|audio|tts|asr|ocr|tokenizer|classifier)",
     flags=re.IGNORECASE,
 )
 PARAM_SIZE_RE = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]\b")
@@ -698,17 +698,43 @@ def _infer_license_label(org: str, tags: List[str]) -> str:
     return org_defaults.get(org.lower(), "Open Weight")
 
 
+def _extract_param_billions(model_name: str) -> Optional[float]:
+    """모델명에서 파라미터 수(B 단위)를 추출합니다. 대형 MoE는 추정치를 반환합니다."""
+    match = PARAM_SIZE_RE.search(model_name)
+    if match:
+        return float(match.group(1))
+    lower = model_name.lower()
+    if any(k in lower for k in ("deepseek-r1", "deepseek-v3", "deepseek-v4")):
+        return 671.0
+    if "llama-4-maverick" in lower:
+        return 400.0
+    if "llama-4-scout" in lower:
+        return 109.0
+    return None
+
+
 def _estimate_params_vram(model_name: str) -> str:
     """모델명에서 파라미터 규모(예: 32B, 35B-A3B)를 읽어 예상 VRAM 배지를 계산합니다."""
-    match = PARAM_SIZE_RE.search(model_name)
-    if not match:
-        if "deepseek-r1" in model_name.lower() or "deepseek-v3" in model_name.lower():
-            return "671B MoE · FP8 ~670GB"
+    params_b = _extract_param_billions(model_name)
+    if params_b is None:
         return "오픈웨이트 · vLLM 권장"
-    params_b = float(match.group(1))
+    if params_b >= 400:
+        return f"{int(params_b)}B MoE · FP8 ~670GB"
     vram_gb = max(4, int(round(params_b * 2)))
     p_str = f"{int(params_b)}B" if params_b.is_integer() else f"{params_b}B"
     return f"{p_str} · VRAM ~{vram_gb}GB"
+
+
+def _enterprise_size_tier(model_name: str) -> int:
+    """B200 폐쇄망 실무 체급 우선순위: 2(14B~대형 MoE) > 1(7B~13B) > 0(7B 미만 초경량)."""
+    params_b = _extract_param_billions(model_name)
+    if params_b is None:
+        return 1
+    if params_b >= 14.0:
+        return 2
+    if params_b >= 7.0:
+        return 1
+    return 0
 
 
 def is_official_onprem_model(model_id: str, tags: Optional[List[str]] = None) -> bool:
@@ -727,18 +753,25 @@ def is_official_onprem_model(model_id: str, tags: Optional[List[str]] = None) ->
 
 def fetch_onprem_open_llms(
     session: Optional[requests.Session] = None,
-    limit: int = 120,
+    limit: int = 100,
+    max_items: int = 8,
 ) -> List[Dict[str, Any]]:
-    """HuggingFace 공개 API에서 공식 조직의 최신 트렌딩(trendingScore) 폐쇄망 오픈LLM TOP 5를 실시간 수집합니다."""
+    """HuggingFace API(text-generation + image-text-to-text)에서 공식 조직의 실무급(14B+ 우선) 폐쇄망 오픈LLM TOP 8을 수집합니다."""
     sess = session or _build_session()
     collected: List[Dict[str, Any]] = []
     seen_ids: set[str] = set()
 
-    queries = [{"pipeline_tag": "text-generation", "sort": "trendingScore", "direction": "-1", "limit": limit}]
+    # text-generation과 네이티브 멀티모달(image-text-to-text)을 함께 조회해 Qwen3.8·Gemma 등 플래그십 누락을 방지합니다.
+    pipeline_tags = ("text-generation", "image-text-to-text")
+    queries: List[Dict[str, Any]] = [
+        {"pipeline_tag": ptag, "sort": "trendingScore", "direction": "-1", "limit": limit}
+        for ptag in pipeline_tags
+    ]
     for org in OFFICIAL_OPEN_LLM_ORGS:
-        queries.append(
-            {"author": org, "pipeline_tag": "text-generation", "sort": "trendingScore", "direction": "-1", "limit": 10}
-        )
+        for ptag in pipeline_tags:
+            queries.append(
+                {"author": org, "pipeline_tag": ptag, "sort": "trendingScore", "direction": "-1", "limit": 8}
+            )
 
     for params in queries:
         try:
@@ -746,7 +779,7 @@ def fetch_onprem_open_llms(
             resp.raise_for_status()
             models = resp.json()
         except Exception as exc:
-            logger.warning("HuggingFace on-prem query failed (%s): %s", params.get("author", "trending"), exc)
+            logger.warning("HuggingFace on-prem query failed (%s/%s): %s", params.get("author", "trending"), params.get("pipeline_tag"), exc)
             continue
 
         if not isinstance(models, list):
@@ -762,6 +795,7 @@ def fetch_onprem_open_llms(
             org, name = model_id.split("/", 1)
             likes = int(m.get("likes") or 0)
             trending = float(m.get("trendingScore") or 0.0)
+            tier = _enterprise_size_tier(name)
             seen_ids.add(model_id)
             collected.append(
                 {
@@ -773,27 +807,35 @@ def fetch_onprem_open_llms(
                     "vllm_supported": True,
                     "trending_score": round(trending, 1),
                     "likes": likes,
+                    "size_tier": tier,
                     "url": f"https://huggingface.co/{model_id}",
                 }
             )
 
-    # 실시간 트렌딩 점수(trendingScore) 우선 정렬 후, 특정 조직 독점을 막기 위해 조직당 1개씩 먼저 선정합니다.
-    collected.sort(key=lambda x: (x["trending_score"], x["likes"]), reverse=True)
+    # 7B 이상 실무급 모델이 충분하면 7B 미만 초경량(1B~4B)은 제외합니다.
+    enterprise_pool = [item for item in collected if item["size_tier"] >= 1]
+    pool = enterprise_pool if len(enterprise_pool) >= 5 else collected
+
+    # 실무 체급(14B+ / MoE 우선) → 실시간 트렌딩 점수 → likes 순으로 정렬 후 조직별 대표 모델을 1개씩 먼저 선정합니다.
+    pool.sort(key=lambda x: (x["size_tier"], x["trending_score"], x["likes"]), reverse=True)
     diversified: List[Dict[str, Any]] = []
     seen_orgs: set[str] = set()
-    for item in collected:
-        if len(diversified) >= 5:
+    for item in pool:
+        if len(diversified) >= max_items:
             break
         org_key = item["org"].lower()
         if org_key not in seen_orgs:
             diversified.append(item)
             seen_orgs.add(org_key)
-    for item in collected:
-        if len(diversified) >= 5:
+    for item in pool:
+        if len(diversified) >= max_items:
             break
         if item not in diversified:
             diversified.append(item)
-    return diversified[:5]
+
+    # 최종 노출 리스트는 실시간 인기도(trending_score) 기준으로 보기 좋게 정렬합니다.
+    diversified.sort(key=lambda x: (x["trending_score"], x["size_tier"], x["likes"]), reverse=True)
+    return diversified[:max_items]
 
 
 def collect_all(offline: bool = False) -> List[RawItem]:

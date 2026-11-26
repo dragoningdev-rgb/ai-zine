@@ -722,8 +722,9 @@
         .join("");
 
     const filteredOnPrem = onpremModels.filter((m) => {
-      if (state.onpremFilter === "APACHE") {
-        return String(m.license || "").toLowerCase().includes("apache");
+      if (state.onpremFilter === "PERMISSIVE") {
+        const lic = String(m.license || "").toLowerCase();
+        return lic.includes("apache") || lic.includes("mit");
       }
       if (state.onpremFilter === "SINGLE_GPU") {
         return parseVramGB(m.params_vram) <= 80;
@@ -738,13 +739,13 @@
       const chipsHTML = `
         <div class="radar-filter-row" role="tablist" aria-label="폐쇄망 오픈LLM 필터">
           <button type="button" class="chip ${state.onpremFilter === "ALL" ? "active" : ""}" data-onprem-filter="ALL">전체</button>
-          <button type="button" class="chip ${state.onpremFilter === "APACHE" ? "active" : ""}" data-onprem-filter="APACHE">Apache 2.0</button>
+          <button type="button" class="chip ${state.onpremFilter === "PERMISSIVE" ? "active" : ""}" data-onprem-filter="PERMISSIVE">완전개방(Apache/MIT)</button>
           <button type="button" class="chip ${state.onpremFilter === "SINGLE_GPU" ? "active" : ""}" data-onprem-filter="SINGLE_GPU">단일 GPU(≤80GB)</button>
           <button type="button" class="chip ${state.onpremFilter === "LIGHT" ? "active" : ""}" data-onprem-filter="LIGHT">경량(≤24GB)</button>
         </div>`;
 
       if (filteredOnPrem.length === 0) {
-        return `${chipsHTML}<div class="empty-state">선택한 조건에 맞는 폐쇄망 오픈LLM이 이번 주 TOP 5에 없습니다.</div>`;
+        return `${chipsHTML}<div class="empty-state">선택한 조건에 맞는 폐쇄망 오픈LLM이 없습니다.</div>`;
       }
 
       const cardsHTML = filteredOnPrem

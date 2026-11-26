@@ -206,7 +206,7 @@ def update_radar(
             for rank, m in enumerate(major_models[:5], start=1)
         ]
 
-    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 5 갱신 (HuggingFace 공식 조직 실시간)
+    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 5~8 갱신 (HuggingFace 공식 조직 실시간)
     if onprem_models:
         prev_onprem = {m.name.lower(): m.rank for m in existing.onprem_models}
         existing.onprem_models = [
@@ -222,7 +222,7 @@ def update_radar(
                 delta=_compute_delta(m["name"], rank, prev_onprem),  # type: ignore[arg-type]
                 url=m.get("url"),
             )
-            for rank, m in enumerate(onprem_models[:5], start=1)
+            for rank, m in enumerate(onprem_models[:8], start=1)
         ]
 
     existing.updated_at = today

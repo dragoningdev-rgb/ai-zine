@@ -193,18 +193,29 @@ def test_fetch_onprem_open_llms_keeps_only_official_models() -> None:
     mock_resp.raise_for_status.return_value = None
     mock_resp.json.return_value = [
         {"id": "randomuser/Model-GGUF-abliterated", "likes": 99999, "trendingScore": 999, "tags": ["gguf"]},
-        {"id": "Qwen/Qwen3.8-27B-Instruct", "likes": 1800, "trendingScore": 450, "tags": ["license:apache-2.0"]},
-        {"id": "LGAI-EXAONE/EXAONE-3.5-32B-Instruct", "likes": 1200, "trendingScore": 120, "tags": ["license:exaone"]},
+        {"id": "google/gemma-3-1b-it", "likes": 3000, "trendingScore": 800, "tags": ["license:gemma"]},
+        {"id": "Qwen/Qwen3.8-27B", "likes": 1800, "trendingScore": 450, "tags": ["license:apache-2.0"]},
+        {"id": "deepseek-ai/DeepSeek-V4-Pro", "likes": 2500, "trendingScore": 420, "tags": ["license:mit"]},
+        {"id": "meta-llama/Llama-3.3-70B-Instruct", "likes": 3600, "trendingScore": 310, "tags": ["license:llama3.3"]},
+        {"id": "LGAI-EXAONE/EXAONE-3.5-32B-Instruct", "likes": 1200, "trendingScore": 220, "tags": ["license:exaone"]},
+        {"id": "mistralai/Mistral-Small-3.1-24B-Instruct-2503", "likes": 2100, "trendingScore": 180, "tags": ["license:apache-2.0"]},
     ]
     mock_session = MagicMock()
     mock_session.get.return_value = mock_resp
 
     models = fetch_onprem_open_llms(session=mock_session)
-    assert len(models) == 2
-    assert models[0]["name"] == "Qwen3.8-27B-Instruct"
+    names = [m["name"] for m in models]
+    assert "Model-GGUF-abliterated" not in names
+    # 7B 미만 초경량(1B)은 7B+ 실무급 모델이 5개 이상일 때 제외되어야 함
+    assert "gemma-3-1b-it" not in names
+    assert models[0]["name"] == "Qwen3.8-27B"
     assert models[0]["license"] == "Apache 2.0"
     assert "27B" in models[0]["params_vram"]
     assert models[0]["vllm_supported"] is True
+    # image-text-to-text 쿼리가 실제로 호출되었는지 검증
+    called_tags = {call.kwargs.get("params", {}).get("pipeline_tag") for call in mock_session.get.call_args_list}
+    assert "text-generation" in called_tags
+    assert "image-text-to-text" in called_tags
 
 
 def test_fetch_major_bigtech_models_parses_openrouter() -> None:
