@@ -6,15 +6,15 @@
     {
       "rank": 1,
       "name": "morluto/rea",
-      "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
-      "weekly_stars": 478655,
+      "description": "앱 동작부터 바이너리까지, AI 에이전트로 뭐든 리버스 엔지니어링",
+      "weekly_stars": 478657,
       "language": "TypeScript",
       "url": "https://github.com/morluto/rea"
     },
     {
       "rank": 2,
       "name": "openclaw/openclaw",
-      "description": "The AI that really does things. Any OS. Any Platform. The lobster way. 🦞",
+      "description": "어떤 OS든 가리지 않고 진짜 행동하는 랍스터형 자율 AI",
       "weekly_stars": 395237,
       "language": "TypeScript",
       "url": "https://github.com/openclaw/openclaw"
@@ -22,24 +22,24 @@
     {
       "rank": 3,
       "name": "mattpocock/skills",
-      "description": "Skills for Real Engineers. Straight from my .agents directory.",
-      "weekly_stars": 333006,
+      "description": "실전 엔지니어를 위한 검증된 AI 에이전트 스킬 모음집",
+      "weekly_stars": 333007,
       "language": "Shell",
       "url": "https://github.com/mattpocock/skills"
     },
     {
       "rank": 4,
       "name": "obra/superpowers",
-      "description": "An agentic skills framework & software development methodology that works.",
-      "weekly_stars": 326741,
+      "description": "실무에 바로 쓰는 AI 에이전트 스킬 프레임워크와 개발 방법론",
+      "weekly_stars": 326744,
       "language": "Shell",
       "url": "https://github.com/obra/superpowers"
     },
     {
       "rank": 5,
       "name": "affaan-m/ECC",
-      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
-      "weekly_stars": 310793,
+      "description": "코딩 AI 에이전트 성능을 극대화하는 하네스 최적화 시스템",
+      "weekly_stars": 310796,
       "language": "JavaScript",
       "url": "https://github.com/affaan-m/ECC"
     }
@@ -110,7 +110,7 @@
       "params_vram": "671B MoE · FP8 ~670GB",
       "vllm_supported": true,
       "likes": 14487,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1"
     },
     {
@@ -121,7 +121,7 @@
       "params_vram": "8B · VRAM ~16GB",
       "vllm_supported": true,
       "likes": 9117,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
     },
     {
@@ -132,7 +132,7 @@
       "params_vram": "8B · VRAM ~16GB",
       "vllm_supported": true,
       "likes": 6817,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
     },
     {
@@ -143,7 +143,7 @@
       "params_vram": "8B · VRAM ~16GB",
       "vllm_supported": true,
       "likes": 6686,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct"
     },
     {
@@ -154,7 +154,7 @@
       "params_vram": "오픈웨이트 · vLLM 권장",
       "vllm_supported": true,
       "likes": 5742,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro"
     }
   ]
