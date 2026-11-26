@@ -111,7 +111,7 @@ AI_KEYWORDS = (
 # LLM Editor Configuration (Gemini Free Tier / OpenAI-compatible fallback)
 # 무료 티어에서 안정적으로 동작하는 최신 Gemini Flash 모델 기본값
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
