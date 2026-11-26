@@ -169,14 +169,23 @@ def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> 
 """
 
 
+GEMINI_SYSTEM_INSTRUCTION = (
+    "당신은 한국 IT 직장인을 위한 출근길 3분 AI 매거진 'Morning AI Zine'의 수석 편집장입니다. "
+    "Hacker News·Reddit·GitHub 원문이 영어이더라도 웹앱에 노출되는 모든 제목(title), 3줄 요약(summary), "
+    "불판(context/pro_side/con_side), 줍줍 무기고 설명(description), 신조어 비유, 점심 한 마디는 "
+    "반드시 100% 자연스러운 한국어 잡지 문체로 번역·작성하고, 오직 유효한 JSON만 출력하세요."
+)
+
+
 def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    """Google Gemini REST API(v1beta)를 호출하고 responseMimeType=application/json을 강제합니다."""
+    """Google Gemini REST API(v1beta/models/{model}:generateContent)를 호출하고 성공/실패 상세 로그를 남깁니다."""
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     try:
         resp = requests.post(
             endpoint,
             params={"key": api_key},
             json={
+                "systemInstruction": {"parts": [{"text": GEMINI_SYSTEM_INSTRUCTION}]},
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "temperature": 0.3,
@@ -191,11 +200,13 @@ def _call_gemini(prompt: str, api_key: str, model: str) -> str:
 
     if not resp.ok:
         body_preview = _mask_secret(resp.text[:600].replace("\n", " "), api_key)
-        raise LLMAPIError("Gemini", resp.status_code, f"model={model} body={body_preview}")
+        raise LLMAPIError("Gemini", resp.status_code, f"endpoint={endpoint} body={body_preview}")
 
     try:
         data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        logger.info("Gemini API call succeeded: model=%s status=%d chars=%d", model, resp.status_code, len(text))
+        return text
     except (ValueError, KeyError, IndexError) as exc:
         raise LLMAPIError("Gemini", resp.status_code, f"unexpected response structure: {resp.text[:400]}") from exc
 

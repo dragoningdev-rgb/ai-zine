@@ -6,40 +6,40 @@
     {
       "rank": 1,
       "name": "morluto/rea",
-      "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
-      "weekly_stars": 478550,
+      "description": "앱 동작부터 네이티브 바이너리까지 AI 에이전트로 리버스 엔지니어링하는 분석 도구",
+      "weekly_stars": 478524,
       "language": "TypeScript",
       "url": "https://github.com/morluto/rea"
     },
     {
       "rank": 2,
       "name": "openclaw/openclaw",
-      "description": "The AI that really does things. Any OS. Any Platform. The lobster way. 🦞",
-      "weekly_stars": 395233,
+      "description": "모든 OS와 플랫폼에서 실제 작업을 수행하는 오픈소스 자율 실행 AI 에이전트",
+      "weekly_stars": 395231,
       "language": "TypeScript",
       "url": "https://github.com/openclaw/openclaw"
     },
     {
       "rank": 3,
       "name": "mattpocock/skills",
-      "description": "Skills for Real Engineers. Straight from my .agents directory.",
-      "weekly_stars": 332939,
+      "description": "실무 엔지니어를 위한 검증된 에이전트 스킬(.agents) 모음집",
+      "weekly_stars": 332913,
       "language": "Shell",
       "url": "https://github.com/mattpocock/skills"
     },
     {
       "rank": 4,
       "name": "obra/superpowers",
-      "description": "An agentic skills framework & software development methodology that works.",
-      "weekly_stars": 326656,
+      "description": "실전에서 동작하는 에이전트 스킬 프레임워크 및 소프트웨어 개발 방법론",
+      "weekly_stars": 326631,
       "language": "Shell",
       "url": "https://github.com/obra/superpowers"
     },
     {
       "rank": 5,
       "name": "affaan-m/ECC",
-      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
-      "weekly_stars": 310763,
+      "description": "Claude Code·Codex·Cursor용 에이전트 하네스 성능 최적화·메모리·보안 프레임워크",
+      "weekly_stars": 310751,
       "language": "JavaScript",
       "url": "https://github.com/affaan-m/ECC"
     }
@@ -47,47 +47,47 @@
   "major_models": [
     {
       "rank": 1,
-      "name": "Gemini 2.5 Pro",
+      "name": "Gemini 2.5 Pro / Flash",
       "provider": "Google",
       "overall": 91.4,
       "coding": 90.8,
       "reasoning": 93.2,
       "context_window": "1M",
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://openrouter.ai/google/gemini-2.5-pro"
     },
     {
       "rank": 2,
-      "name": "Claude Sonnet 4",
+      "name": "Claude 3.7 Sonnet",
       "provider": "Anthropic",
-      "overall": 90.9,
-      "coding": 93.5,
-      "reasoning": 89.6,
-      "context_window": "1M",
-      "delta": "NEW",
-      "url": "https://openrouter.ai/anthropic/claude-sonnet-4.6"
+      "overall": 90.8,
+      "coding": 93.4,
+      "reasoning": 89.7,
+      "context_window": "200K",
+      "delta": 1,
+      "url": "https://openrouter.ai/anthropic/claude-3.7-sonnet"
     },
     {
       "rank": 3,
-      "name": "OpenAI o3 / GPT-4.1",
+      "name": "GPT-4o / o1",
       "provider": "OpenAI",
-      "overall": 90.6,
-      "coding": 91.2,
-      "reasoning": 92.8,
-      "context_window": "200K",
-      "delta": "NEW",
-      "url": "https://openrouter.ai/openai/o3-pro"
+      "overall": 89.9,
+      "coding": 90.2,
+      "reasoning": 91.8,
+      "context_window": "128K",
+      "delta": -1,
+      "url": "https://openrouter.ai/openai/gpt-4o"
     },
     {
       "rank": 4,
-      "name": "DeepSeek-R1 / V3",
+      "name": "DeepSeek-V3 / R1",
       "provider": "DeepSeek",
       "overall": 88.7,
       "coding": 88.4,
       "reasoning": 90.5,
-      "context_window": "163K",
-      "delta": "NEW",
-      "url": "https://openrouter.ai/deepseek/deepseek-r1-0528"
+      "context_window": "128K",
+      "delta": 0,
+      "url": "https://openrouter.ai/deepseek/deepseek-r1"
     },
     {
       "rank": 5,
@@ -96,66 +96,66 @@
       "overall": 88.1,
       "coding": 86.9,
       "reasoning": 89.4,
-      "context_window": "500K",
+      "context_window": "131K",
       "delta": "NEW",
-      "url": "https://openrouter.ai/x-ai/grok-4.7"
+      "url": "https://openrouter.ai/x-ai/grok-3"
     }
   ],
   "onprem_models": [
     {
       "rank": 1,
-      "name": "DeepSeek-R1",
-      "org": "deepseek-ai",
-      "license": "MIT",
-      "params_vram": "671B MoE · FP8 ~670GB",
+      "name": "Qwen2.5-Coder-32B-Instruct",
+      "org": "Qwen",
+      "license": "Apache 2.0",
+      "params_vram": "32B · VRAM ~64GB",
       "vllm_supported": true,
-      "likes": 14487,
-      "delta": "NEW",
-      "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1"
+      "likes": 4120,
+      "delta": 0,
+      "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct"
     },
     {
       "rank": 2,
-      "name": "Llama-3.1-8B-Instruct",
-      "org": "meta-llama",
-      "license": "Llama 3.1",
-      "params_vram": "8B · VRAM ~16GB",
+      "name": "DeepSeek-R1-Distill-Qwen-32B",
+      "org": "deepseek-ai",
+      "license": "MIT",
+      "params_vram": "32B · VRAM ~64GB",
       "vllm_supported": true,
-      "likes": 9116,
-      "delta": "NEW",
-      "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
+      "likes": 4090,
+      "delta": 1,
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
     },
     {
       "rank": 3,
-      "name": "Meta-Llama-3-8B",
+      "name": "Llama-3.3-70B-Instruct",
       "org": "meta-llama",
-      "license": "Llama3",
-      "params_vram": "8B · VRAM ~16GB",
+      "license": "Llama 3.3",
+      "params_vram": "70B · VRAM ~140GB",
       "vllm_supported": true,
-      "likes": 6817,
-      "delta": "NEW",
-      "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
+      "likes": 3640,
+      "delta": 0,
+      "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct"
     },
     {
       "rank": 4,
-      "name": "Meta-Llama-3-8B-Instruct",
-      "org": "meta-llama",
-      "license": "Llama3",
-      "params_vram": "8B · VRAM ~16GB",
+      "name": "gemma-2-27b-it",
+      "org": "google",
+      "license": "Gemma",
+      "params_vram": "27B · VRAM ~54GB",
       "vllm_supported": true,
-      "likes": 6685,
-      "delta": "NEW",
-      "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct"
+      "likes": 3120,
+      "delta": -1,
+      "url": "https://huggingface.co/google/gemma-2-27b-it"
     },
     {
       "rank": 5,
-      "name": "DeepSeek-V4-Pro",
-      "org": "deepseek-ai",
-      "license": "MIT",
-      "params_vram": "오픈웨이트 · vLLM 권장",
+      "name": "EXAONE-3.5-32B-Instruct",
+      "org": "LGAI-EXAONE",
+      "license": "EXAONE",
+      "params_vram": "32B · VRAM ~64GB",
       "vllm_supported": true,
-      "likes": 5742,
+      "likes": 1240,
       "delta": "NEW",
-      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro"
+      "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-3.5-32B-Instruct"
     }
   ]
 }

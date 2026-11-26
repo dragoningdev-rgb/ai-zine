@@ -213,7 +213,7 @@ def test_fetch_major_bigtech_models_parses_openrouter() -> None:
     mock_resp.json.return_value = {
         "data": [
             {"id": "google/gemini-2.5-pro", "context_length": 1000000},
-            {"id": "anthropic/claude-sonnet-4", "context_length": 200000},
+            {"id": "anthropic/claude-3.7-sonnet", "context_length": 200000},
         ]
     }
     mock_session = MagicMock()
