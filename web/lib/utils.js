@@ -79,11 +79,30 @@
     };
   }
 
+  // HTML 이스케이프 후 핵심 수치·단위·주요 AI 고유명사를 <strong>으로 자동 강조합니다(XSS 안전).
+  const HIGHLIGHT_RE = new RegExp(
+    [
+      // 금액·비율·배수·분수·파라미터/메모리/수량 단위 (예: $3.00, 99.5%, 1/8, 32B, 1M, 80GB, 1,700만, 5종)
+      "(?:\\$\\d+(?:[.,]\\d+)?[KMB]?)",
+      "(?:\\d+(?:,\\d{3})*(?:\\.\\d+)?(?:%|배|만|억|종|개|초|분|시간|GB|TB|MB|K|M|B)(?![A-Za-z]))",
+      "(?:\\d+\\/\\d+)",
+      // 주요 AI 모델·프레임워크·표준 고유명사 및 버전명
+      "(?:\\b(?:GPT-\\d+(?:\\.\\d+)?|Gemini\\s?\\d+(?:\\.\\d+)?|Claude\\s?[\\w.]+|Qwen[\\d.]*|DeepSeek-[\\w.-]+|Llama\\s?[\\d.]+|Gemma\\s?[\\d.]+|EXAONE[\\s\\d.]*|Grok\\s?\\d+(?:\\.\\d+)?|vLLM|SGLang|Apache\\s?2\\.0|MIT|MCP|WebGPU|RAG|SWE-bench|SDD|B200|H100)\\b)",
+    ].join("|"),
+    "g"
+  );
+
+  function highlightSummary(text) {
+    const safe = escapeHTML(text);
+    return safe.replace(HIGHLIGHT_RE, (match) => `<strong class="hl">${match}</strong>`);
+  }
+
   // 다른 스크립트(app.js)에서 공통으로 꺼내 쓸 수 있도록 전역 객체에 등록합니다.
   window.ZineUtils = {
     loadJSON,
     saveJSON,
     escapeHTML,
+    highlightSummary,
     formatDateLabel,
     fetchJSON,
     copyText,

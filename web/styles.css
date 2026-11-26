@@ -32,19 +32,24 @@
   --font-serif: "Iowan Old Style", "AppleMyungjo", Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --nav-h: 64px;
+  --font-scale: 1;
+}
+
+[data-font-scale="large"] {
+  --font-scale: 1.12;
 }
 
 [data-theme="dark"] {
-  --bg: #121214;
-  --surface: #1B1B1F;
-  --surface-alt: #24242A;
+  --bg: #0d0e11;
+  --surface: #16181d;
+  --surface-alt: #1f2229;
   --ink: #F4F3EE;
   --ink-muted: #B4B2AC;
   --ink-subtle: #8C8A84;
-  --border: #2C2C33;
+  --border: #2A2D36;
   --accent: #F06A43;
   --accent-soft: rgba(240, 106, 67, 0.16);
-  --hero-bg: #222228;
+  --hero-bg: #1c1f26;
   --hero-ink: #F8F7F2;
   --hero-muted: #C7C5BE;
   --pro-bg: rgba(16, 185, 129, 0.13);
@@ -84,7 +89,7 @@ body {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   word-break: keep-all;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 button,
@@ -220,6 +225,18 @@ a {
   transform: scale(0.95);
 }
 
+.font-toggle-btn {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.font-toggle-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .badge-count {
   position: absolute;
   top: -4px;
@@ -307,6 +324,16 @@ a {
   padding: 18px;
   box-shadow: var(--shadow-sm);
   min-width: 0;
+  scroll-margin-top: 108px;
+  transition: opacity 0.25s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card.is-read {
+  opacity: 0.66;
+}
+
+.card.is-read:hover {
+  opacity: 0.92;
 }
 
 .card-kicker-row {
@@ -343,7 +370,7 @@ a {
 
 .card-title {
   margin: 0 0 12px;
-  font-size: 18px;
+  font-size: calc(18px * var(--font-scale));
   font-weight: 800;
   line-height: 1.38;
   letter-spacing: -0.02em;
@@ -361,9 +388,51 @@ a {
 .summary-list li {
   position: relative;
   padding-left: 14px;
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-size: calc(14.5px * var(--font-scale));
+  line-height: 1.62;
   color: var(--ink-muted);
+}
+
+.summary-list li .hl {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.card-hero .summary-list li .hl {
+  color: #FFFFFF;
+}
+
+/* 1줄 실무 시사점 ("그래서 내 일엔?") 콜아웃 */
+.takeaway-box {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+  background: var(--surface-alt);
+}
+
+.card-hero .takeaway-box {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.takeaway-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+
+.takeaway-text {
+  margin: 0;
+  font-size: calc(13.5px * var(--font-scale));
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.card-hero .takeaway-text {
+  color: var(--hero-ink);
 }
 
 .summary-list li::before {
@@ -450,7 +519,7 @@ a {
 }
 
 .card-hero .card-title {
-  font-size: 21px;
+  font-size: calc(21px * var(--font-scale));
   line-height: 1.35;
   color: var(--hero-ink);
 }
@@ -608,6 +677,7 @@ a {
   border: 1.5px dashed var(--border);
   background: var(--surface);
   text-align: center;
+  scroll-margin-top: 108px;
 }
 
 .finish-card.completed {
@@ -990,6 +1060,49 @@ a {
   background: var(--pro-bg);
   border-color: var(--pro-border);
   color: var(--pro-ink);
+}
+
+/* 판도 탭: 폐쇄망 퀵 필터 칩 & 가로 미니 프로그레스 바 */
+.radar-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.radar-filter-row .chip {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.mini-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.mini-bar-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.mini-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.mini-bar-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-subtle);
+  white-space: nowrap;
 }
 
 .seg-btn {

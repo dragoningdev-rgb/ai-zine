@@ -63,6 +63,25 @@ def test_invalid_edition_rejected_by_schema() -> None:
         Edition.model_validate({"date": "2026/11/26", "issue_no": 0, "brief": {}})
 
 
+def test_takeaway_field_is_optional_for_backward_compatibility() -> None:
+    from pipeline.schema import HeroNews, HotIssue
+
+    hero_without = HeroNews(
+        id="n1", title="제목", summary=["1줄"], source="GeekNews", url="https://example.com"
+    )
+    assert hero_without.takeaway is None
+
+    hot_with = HotIssue(
+        id="n2",
+        title="제목",
+        summary=["1줄"],
+        takeaway="사내 코드 리뷰 파이프라인 비용을 절반으로 줄일 수 있습니다.",
+        source="HN",
+        url="https://example.com",
+    )
+    assert hot_with.takeaway is not None
+
+
 def test_fallback_curate_and_publish_without_api_key(tmp_path: Path) -> None:
     """Verify AC3: missing/invalid API keys gracefully produce valid Edition + picks + index."""
     from pipeline.build_data import publish_edition

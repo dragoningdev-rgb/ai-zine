@@ -1,12 +1,21 @@
 /* Morning AI Zine — 클라이언트 앱 (무백엔드 정적 PWA) */
 (() => {
   // 공통 유틸리티(web/lib/utils.js)에서 자주 쓰는 도우미 함수를 가져옵니다.
-  const { loadJSON, saveJSON, escapeHTML, formatDateLabel, fetchJSON, copyText, debounce } =
-    window.ZineUtils;
+  const {
+    loadJSON,
+    saveJSON,
+    escapeHTML,
+    highlightSummary,
+    formatDateLabel,
+    fetchJSON,
+    copyText,
+    debounce,
+  } = window.ZineUtils;
 
   // 브라우저 저장소(localStorage)에 기록할 항목 이름 목록입니다.
   const STORAGE_KEYS = {
     THEME: "ai_zine_theme",
+    FONT_SCALE: "ai_zine_font_scale",
     SCRAPS: "ai_zine_scraps_v1",
     READ_CARDS: "ai_zine_read_cards_v1",
     COMPLETED_DATES: "ai_zine_completed_dates_v1",
@@ -26,6 +35,7 @@
     picksQuery: "",
     radar: null,
     radarCategory: "major",
+    onpremFilter: "ALL",
     scraps: loadJSON(STORAGE_KEYS.SCRAPS, []),
     readCardsByDate: loadJSON(STORAGE_KEYS.READ_CARDS, {}),
     completedDates: loadJSON(STORAGE_KEYS.COMPLETED_DATES, []),
@@ -86,7 +96,54 @@
       </button>`;
   }
 
-  /* ---------------- 테마 (라이트 / 다크 모드) ---------------- */
+  // 카톡·사내 메신저 공유용 원터치 브리핑 포맷 문자열을 생성합니다.
+  function formatBriefingText(title, summaryLines, url) {
+    const lines = (Array.isArray(summaryLines) ? summaryLines : [summaryLines])
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((line) => `• ${line}`);
+    const parts = [`[Morning AI Zine] ${title}`, ...lines];
+    if (url) parts.push(`원문: ${url}`);
+    return parts.join("\n");
+  }
+
+  // 원터치 브리핑 복사 버튼 HTML을 공통 형식으로 생성합니다.
+  function renderBriefingCopyButton(briefingText) {
+    return `
+      <button type="button" class="pill-btn" data-share-briefing="${escapeHTML(briefingText)}">
+        복사
+      </button>`;
+  }
+
+  // 1줄 실무 시사점("그래서 내 일엔?") 콜아웃 HTML을 생성합니다(필드가 없으면 생략해 하위 호환성 유지).
+  function renderTakeawayBox(takeaway) {
+    if (!takeaway) return "";
+    return `
+      <div class="takeaway-box">
+        <span class="takeaway-label">그래서 내 일엔?</span>
+        <p class="takeaway-text">${escapeHTML(takeaway)}</p>
+      </div>`;
+  }
+
+  /* ---------------- 테마 (라이트 / 다크 모드) & 글자 크기 (가 / 가+) ---------------- */
+
+  // 저장된 글자 크기 설정(normal / large)을 복원합니다.
+  function initFontScale() {
+    const saved = localStorage.getItem(STORAGE_KEYS.FONT_SCALE) || "normal";
+    applyFontScale(saved);
+  }
+
+  function applyFontScale(scale) {
+    const isLarge = scale === "large";
+    document.documentElement.setAttribute("data-font-scale", isLarge ? "large" : "normal");
+    localStorage.setItem(STORAGE_KEYS.FONT_SCALE, isLarge ? "large" : "normal");
+    const btn = document.getElementById("btn-font-toggle");
+    if (btn) {
+      btn.textContent = isLarge ? "가+" : "가";
+      btn.classList.toggle("active", isLarge);
+      btn.setAttribute("aria-pressed", String(isLarge));
+    }
+  }
 
   // 저장된 테마 설정이나 기기 시스템 설정에 맞춰 초기 테마를 적용합니다.
   function initTheme() {
@@ -106,7 +163,7 @@
     if (moon) moon.hidden = isDark;
     if (sun) sun.hidden = !isDark;
     const metaTheme = document.getElementById("meta-theme-color");
-    if (metaTheme) metaTheme.setAttribute("content", isDark ? "#121214" : "#F7F5F0");
+    if (metaTheme) metaTheme.setAttribute("content", isDark ? "#0d0e11" : "#F7F5F0");
   }
 
   /* ---------------- 스크랩 서랍 ---------------- */
@@ -363,51 +420,60 @@
     const streak = computeStreak();
     const { hero_news: hero, hot_issue: hot, term_of_day: term, daily_pick: pick, lunch_talk: lunch } = brief;
 
+    const heroBrief = formatBriefingText(hero.title, hero.summary, hero.url);
+    const hotBrief = formatBriefingText(hot.title, hot.summary, hot.url);
+    const termBrief = formatBriefingText(term.term, [term.analogy, term.office_line], "");
+    const pickBrief = formatBriefingText(pick.title, [pick.description], pick.url);
+
     container.innerHTML = `
       <!-- 1번 카드: 히어로 빅뉴스 -->
-      <article class="card card-hero" data-card-key="c1">
+      <article class="card card-hero ${readSet.has("c1") ? "is-read" : ""}" data-card-key="c1">
         <div class="card-kicker-row">
           <span class="kicker-pill">${escapeHTML(hero.category || "BIG NEWS")}</span>
           <span class="card-num">01 / 05</span>
         </div>
         <h2 class="card-title">${escapeHTML(hero.title)}</h2>
         <ul class="summary-list">
-          ${(hero.summary || []).map((line) => `<li>${escapeHTML(line)}</li>`).join("")}
+          ${(hero.summary || []).map((line) => `<li>${highlightSummary(line)}</li>`).join("")}
         </ul>
+        ${renderTakeawayBox(hero.takeaway)}
         <div class="card-footer">
           <a class="source-link" href="${escapeHTML(hero.url)}" target="_blank" rel="noopener noreferrer">
             ${escapeHTML(hero.source)} ↗
           </a>
           <div class="card-actions">
             ${renderReadButton(readSet, "c1")}
+            ${renderBriefingCopyButton(heroBrief)}
             ${renderScrapButton(hero.id, "data-scrap-target", "hero")}
           </div>
         </div>
       </article>
 
       <!-- 2번 카드: 핫 이슈 -->
-      <article class="card" data-card-key="c2">
+      <article class="card ${readSet.has("c2") ? "is-read" : ""}" data-card-key="c2">
         <div class="card-kicker-row">
           <span class="kicker-pill">HOT ISSUE</span>
           <span class="card-num">02 / 05</span>
         </div>
         <h2 class="card-title">${escapeHTML(hot.title)}</h2>
         <ul class="summary-list">
-          ${(hot.summary || []).map((line) => `<li>${escapeHTML(line)}</li>`).join("")}
+          ${(hot.summary || []).map((line) => `<li>${highlightSummary(line)}</li>`).join("")}
         </ul>
+        ${renderTakeawayBox(hot.takeaway)}
         <div class="card-footer">
           <a class="source-link" href="${escapeHTML(hot.url)}" target="_blank" rel="noopener noreferrer">
             ${escapeHTML(hot.source)} ↗
           </a>
           <div class="card-actions">
             ${renderReadButton(readSet, "c2")}
+            ${renderBriefingCopyButton(hotBrief)}
             ${renderScrapButton(hot.id, "data-scrap-target", "hot")}
           </div>
         </div>
       </article>
 
       <!-- 3번 카드: 1줄 신조어 플립 -->
-      <article class="card term-card ${state.termFlipped ? "flipped" : ""}" data-card-key="c3" id="term-flip-card" aria-expanded="${state.termFlipped}">
+      <article class="card term-card ${state.termFlipped ? "flipped" : ""} ${readSet.has("c3") ? "is-read" : ""}" data-card-key="c3" id="term-flip-card" aria-expanded="${state.termFlipped}">
         <div class="card-kicker-row">
           <span class="kicker-pill">1줄 신조어</span>
           <span class="card-num">03 / 05</span>
@@ -424,19 +490,20 @@
           <span class="source-link">오늘의 개념 비유</span>
           <div class="card-actions">
             ${renderReadButton(readSet, "c3")}
+            ${renderBriefingCopyButton(termBrief)}
             ${renderScrapButton(term.id, "data-scrap-target", "term")}
           </div>
         </div>
       </article>
 
       <!-- 4번 카드: 오늘의 줍줍 -->
-      <article class="card" data-card-key="c4">
+      <article class="card ${readSet.has("c4") ? "is-read" : ""}" data-card-key="c4">
         <div class="card-kicker-row">
           <span class="kicker-pill">오늘의 줍줍 · ${pick.type === "prompt" ? "#프롬프트" : "#툴"}</span>
           <span class="card-num">04 / 05</span>
         </div>
         <h2 class="card-title">${escapeHTML(pick.title)}</h2>
-        <p class="pick-desc">${escapeHTML(pick.description)}</p>
+        <p class="pick-desc">${highlightSummary(pick.description)}</p>
         ${renderCopyBox(pick.type, pick.copy_text)}
         <div class="card-footer">
           <a class="source-link" href="${escapeHTML(pick.url)}" target="_blank" rel="noopener noreferrer">
@@ -444,13 +511,14 @@
           </a>
           <div class="card-actions">
             ${renderReadButton(readSet, "c4")}
+            ${renderBriefingCopyButton(pickBrief)}
             ${renderScrapButton(pick.id, "data-scrap-target", "pick")}
           </div>
         </div>
       </article>
 
       <!-- 5번 카드: 점심 한 마디 -->
-      <article class="card card-quote" data-card-key="c5">
+      <article class="card card-quote ${readSet.has("c5") ? "is-read" : ""}" data-card-key="c5">
         <div class="card-kicker-row">
           <span class="kicker-pill">점심 한 마디</span>
           <span class="card-num">05 / 05</span>
@@ -461,13 +529,13 @@
           <span class="source-link">동료와 가볍게 던질 인사이트</span>
           <div class="card-actions">
             ${renderReadButton(readSet, "c5")}
-            <button type="button" class="pill-btn" data-copy-raw="${escapeHTML(lunch.quote)}">복사</button>
+            <button type="button" class="pill-btn" data-share-briefing="${escapeHTML(formatBriefingText("점심 한 마디", [lunch.quote], ""))}">복사</button>
           </div>
         </div>
       </article>
 
       <!-- 하단 완독 도장 & 연속 출석 카운터 -->
-      <div class="finish-card ${allDone ? "completed" : ""}">
+      <div class="finish-card ${allDone ? "completed" : ""}" id="finish-card">
         ${
           allDone
             ? `
@@ -523,6 +591,7 @@
             ${escapeHTML(item.source)} 원문 ↗
           </a>
           <div class="card-actions">
+            ${renderBriefingCopyButton(formatBriefingText(item.title, [item.context, `옹호: ${item.pro_side}`], item.url))}
             ${renderScrapButton(item.id, "data-scrap-buzz", idx)}
           </div>
         </div>
@@ -573,6 +642,7 @@
               : `<span class="source-link">아카이브 항목</span>`
           }
           <div class="card-actions">
+            ${renderBriefingCopyButton(formatBriefingText(item.title, [item.description], item.url))}
             ${renderScrapButton(item.id, "data-scrap-pick-id", item.id)}
           </div>
         </div>
@@ -592,6 +662,21 @@
     return `<span class="delta-badge delta-same">—</span>`;
   }
 
+  // 컨텍스트 문자열("1.1M", "200K")을 상대 비교 바 비율(0~100)용 숫자로 변환합니다.
+  function parseContextTokens(ctxStr) {
+    const raw = String(ctxStr || "").toUpperCase();
+    const m = raw.match(/(\d+(?:\.\d+)?)\s*([MK])/);
+    if (!m) return 0;
+    const val = parseFloat(m[1]);
+    return m[2] === "M" ? val * 1000 : val;
+  }
+
+  // 예상 VRAM 문자열("32B · VRAM ~64GB")에서 GB 수치를 추출합니다(추출 불가 시 Infinity).
+  function parseVramGB(vramStr) {
+    const m = String(vramStr || "").match(/~?(\d+(?:\.\d+)?)\s*GB/i);
+    return m ? parseFloat(m[1]) : Number.POSITIVE_INFINITY;
+  }
+
   function renderRadar() {
     const container = document.getElementById("radar-content");
     const updatedEl = document.getElementById("radar-updated");
@@ -605,9 +690,13 @@
     const majorModels = state.radar.major_models || [];
     const onpremModels = state.radar.onprem_models || [];
 
+    const maxCtxK = Math.max(1, ...majorModels.map((m) => parseContextTokens(m.context_window)));
+    const maxTrend = Math.max(1, ...onpremModels.map((m) => Number(m.trending_score || m.likes || 1)));
+
     const renderMajorList = () =>
       majorModels
         .map((m) => {
+          const ctxPct = Math.max(18, Math.round((parseContextTokens(m.context_window) / maxCtxK) * 100));
           const inner = `
             <div class="rank-row-top">
               <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
@@ -621,6 +710,10 @@
               <span class="metric-chip strong">컨텍스트 <strong>${escapeHTML(m.context_window || "—")}</strong></span>
               <span class="metric-chip">입력/1M <strong>${escapeHTML(m.input_price || "—")}</strong></span>
               <span class="metric-chip">출력/1M <strong>${escapeHTML(m.output_price || "—")}</strong></span>
+            </div>
+            <div class="mini-bar-wrap" aria-hidden="true">
+              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${ctxPct}%"></div></div>
+              <span class="mini-bar-label">컨텍스트 ${ctxPct}%</span>
             </div>`;
           return m.url
             ? `<a class="rank-card" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
@@ -628,9 +721,36 @@
         })
         .join("");
 
-    const renderOnPremList = () =>
-      onpremModels
+    const filteredOnPrem = onpremModels.filter((m) => {
+      if (state.onpremFilter === "APACHE") {
+        return String(m.license || "").toLowerCase().includes("apache");
+      }
+      if (state.onpremFilter === "SINGLE_GPU") {
+        return parseVramGB(m.params_vram) <= 80;
+      }
+      if (state.onpremFilter === "LIGHT") {
+        return parseVramGB(m.params_vram) <= 24;
+      }
+      return true;
+    });
+
+    const renderOnPremList = () => {
+      const chipsHTML = `
+        <div class="radar-filter-row" role="tablist" aria-label="폐쇄망 오픈LLM 필터">
+          <button type="button" class="chip ${state.onpremFilter === "ALL" ? "active" : ""}" data-onprem-filter="ALL">전체</button>
+          <button type="button" class="chip ${state.onpremFilter === "APACHE" ? "active" : ""}" data-onprem-filter="APACHE">Apache 2.0</button>
+          <button type="button" class="chip ${state.onpremFilter === "SINGLE_GPU" ? "active" : ""}" data-onprem-filter="SINGLE_GPU">단일 GPU(≤80GB)</button>
+          <button type="button" class="chip ${state.onpremFilter === "LIGHT" ? "active" : ""}" data-onprem-filter="LIGHT">경량(≤24GB)</button>
+        </div>`;
+
+      if (filteredOnPrem.length === 0) {
+        return `${chipsHTML}<div class="empty-state">선택한 조건에 맞는 폐쇄망 오픈LLM이 이번 주 TOP 5에 없습니다.</div>`;
+      }
+
+      const cardsHTML = filteredOnPrem
         .map((m) => {
+          const scoreVal = Number(m.trending_score || m.likes || 0);
+          const pct = Math.max(18, Math.round((scoreVal / maxTrend) * 100));
           const inner = `
             <div class="rank-row-top">
               <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
@@ -644,12 +764,18 @@
               <span class="spec-badge license">${escapeHTML(m.license)}</span>
               <span class="spec-badge vram">${escapeHTML(m.params_vram)}</span>
               ${m.vllm_supported ? `<span class="spec-badge vllm">vLLM 지원</span>` : ""}
+            </div>
+            <div class="mini-bar-wrap" aria-hidden="true">
+              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
+              <span class="mini-bar-label">인기도 ${pct}%</span>
             </div>`;
           return m.url
             ? `<a class="rank-card" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
             : `<div class="rank-card">${inner}</div>`;
         })
         .join("");
+      return `${chipsHTML}${cardsHTML}`;
+    };
 
     container.innerHTML = `
       <section class="card">
@@ -774,6 +900,14 @@
       loadEdition(e.target.value).catch(() => showToast("해당 호수를 불러오지 못했어요"));
     });
 
+    // 글자 크기 (가 / 가+) 토글
+    document.getElementById("btn-font-toggle").addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-font-scale") || "normal";
+      const next = current === "large" ? "normal" : "large";
+      applyFontScale(next);
+      showToast(next === "large" ? "큰 글자로 키웠어요 (가+)" : "기본 글자 크기예요 (가)");
+    });
+
     // 다크/라이트 모드 토글
     document.getElementById("btn-theme-toggle").addEventListener("click", () => {
       const current = document.documentElement.getAttribute("data-theme") || "light";
@@ -810,6 +944,13 @@
 
     // 동적으로 그려지는 카드 내부 버튼은 이벤트 위임으로 한 번에 처리합니다.
     document.body.addEventListener("click", (e) => {
+      const shareBtn = e.target.closest("[data-share-briefing]");
+      if (shareBtn) {
+        e.stopPropagation();
+        handleCopy(shareBtn.getAttribute("data-share-briefing"), "브리핑 복사됨");
+        return;
+      }
+
       const copyBtn = e.target.closest("[data-copy-raw]");
       if (copyBtn) {
         e.stopPropagation();
@@ -828,8 +969,22 @@
       const readBtn = e.target.closest("[data-read-card]");
       if (readBtn) {
         e.stopPropagation();
-        markCardRead(state.currentDate, readBtn.getAttribute("data-read-card"));
+        const cardKey = readBtn.getAttribute("data-read-card");
+        markCardRead(state.currentDate, cardKey);
         renderToday();
+        // 한 손 엄지 UX: 확인 직후 아직 읽지 않은 다음 카드(또는 하단 완료 영역)로 부드럽게 스크롤합니다.
+        requestAnimationFrame(() => {
+          const order = ["c1", "c2", "c3", "c4", "c5"];
+          const currentIdx = order.indexOf(cardKey);
+          const readSet = getReadSet(state.currentDate);
+          const nextKey = order.slice(currentIdx + 1).find((k) => !readSet.has(k));
+          const targetEl = nextKey
+            ? document.querySelector(`[data-card-key="${nextKey}"]`)
+            : document.getElementById("finish-card");
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
         return;
       }
 
@@ -906,10 +1061,18 @@
         return;
       }
 
-      // 판도 탭의 모델 부문(코딩/추론/로컬) 전환
+      // 판도 탭의 모델 부문(메이저 빅테크 / 폐쇄망 오픈LLM) 전환
       const radarCatBtn = e.target.closest("[data-radar-cat]");
       if (radarCatBtn) {
         state.radarCategory = radarCatBtn.getAttribute("data-radar-cat");
+        renderRadar();
+        return;
+      }
+
+      // 폐쇄망 오픈LLM 퀵 필터 칩 전환
+      const onpremFilterBtn = e.target.closest("[data-onprem-filter]");
+      if (onpremFilterBtn) {
+        state.onpremFilter = onpremFilterBtn.getAttribute("data-onprem-filter");
         renderRadar();
       }
     });
@@ -920,6 +1083,7 @@
   // 초기 데이터를 병렬로 불러오며, 일부 파일이 누락되어도 나머지 탭이 정상 동작하도록 보호합니다.
   async function init() {
     initTheme();
+    initFontScale();
     updateScrapBadge();
     bindEvents();
 

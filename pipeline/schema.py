@@ -15,6 +15,7 @@ class HeroNews(BaseModel):
     category: str = Field(default="BIG NEWS", min_length=1)
     title: str = Field(..., min_length=1, max_length=80)
     summary: List[str] = Field(..., min_length=1, max_length=3)
+    takeaway: Optional[str] = None
     source: str = Field(..., min_length=1)
     url: str = Field(..., min_length=1)
 
@@ -24,6 +25,7 @@ class HotIssue(BaseModel):
     id: str = Field(..., min_length=1)
     title: str = Field(..., min_length=1, max_length=100)
     summary: List[str] = Field(..., min_length=1, max_length=3)
+    takeaway: Optional[str] = None
     source: str = Field(..., min_length=1)
     url: str = Field(..., min_length=1)
 

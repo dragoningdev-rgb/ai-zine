@@ -139,8 +139,8 @@ def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> 
 2. **뻔한 상투어 금지 / 구체적 팩트 중심:** "가장 높은 화제성을 기록했습니다", "실무 적용 가능성이 주목받고 있습니다", "원문에서 확인할 수 있습니다" 같은 공허한 문장은 절대 쓰지 마세요. 반드시 제공된 `meta_description`, `summary`, `top_comments`에서 구체적인 기술 구조·성능 수치·비용 변화·보안 이슈·실제 개발자 댓글의 핵심 논거를 뽑아 작성하세요.
 3. **카드별 분량 및 구조:**
    - `date`: "{date_str}", `issue_no`: {issue_no}, `read_time_min`: 3
-   - `hero_news`: 가장 파급력 큰 1건. `title`은 35자 이내 한국어 헤드라인, `summary`는 구체적 팩트 3줄 배열(1줄=무엇이 나왔는지, 2줄=핵심 기술/수치, 3줄=실무 영향).
-   - `hot_issue`: 두 번째로 중요한 1건. `title`은 한국어, `summary`는 구체적 팩트 2줄 배열.
+   - `hero_news`: 가장 파급력 큰 1건. `title`은 35자 이내 한국어 헤드라인, `summary`는 구체적 팩트 3줄 배열(1줄=무엇이 나왔는지, 2줄=핵심 기술/수치, 3줄=실무 영향), `takeaway`는 "그래서 내 일엔?"에 답하는 40자 내외 1줄 실무 시사점.
+   - `hot_issue`: 두 번째로 중요한 1건. `title`은 한국어, `summary`는 구체적 팩트 2줄 배열, `takeaway`는 40자 내외 1줄 실무 시사점.
    - `term_of_day`: 오늘 기사에서 등장한 핵심 AI 용어 1개 + 비개발자도 이해하는 1줄 비유 + 회의실에서 바로 쓸 멘트.
    - `daily_pick`: 실무에 바로 써먹을 무료 도구(`"tool"`) 또는 프롬프트(`"prompt"`) 1개 + 한국어 2줄 설명 + 복붙 가능한 `copy_text`.
    - `lunch_talk.quote`: 점심시간에 동료에게 툭 던지기 좋은 1~2줄 업계 인사이트.
@@ -153,8 +153,8 @@ def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> 
   "issue_no": {issue_no},
   "read_time_min": 3,
   "brief": {{
-    "hero_news": {{"id": "{compact}-n1", "category": "BIG NEWS", "title": "...", "summary": ["...", "...", "..."], "source": "...", "url": "https://..."}},
-    "hot_issue": {{"id": "{compact}-n2", "title": "...", "summary": ["...", "..."], "source": "...", "url": "https://..."}},
+    "hero_news": {{"id": "{compact}-n1", "category": "BIG NEWS", "title": "...", "summary": ["...", "...", "..."], "takeaway": "실무 시사점 1줄 (40자 내외)", "source": "...", "url": "https://..."}},
+    "hot_issue": {{"id": "{compact}-n2", "title": "...", "summary": ["...", "..."], "takeaway": "실무 시사점 1줄 (40자 내외)", "source": "...", "url": "https://..."}},
     "term_of_day": {{"id": "{compact}-t1", "term": "...", "analogy": "...", "office_line": "회의실 멘트: ..."}},
     "daily_pick": {{"id": "{compact}-p1", "type": "tool", "title": "...", "description": "...", "copy_text": "...", "url": "https://..."}},
     "lunch_talk": {{"quote": "..."}}
