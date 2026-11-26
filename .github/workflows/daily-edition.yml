@@ -47,7 +47,7 @@ jobs:
           python pipeline/main.py $RADAR_FLAG
 
       - name: Verify generated JSON schemas
-        run: pytest tests/test_collect.py tests/test_schema.py -v
+        run: python -m pytest tests/test_collect.py tests/test_schema.py -v
 
       - name: Commit and push updated data
         run: |
