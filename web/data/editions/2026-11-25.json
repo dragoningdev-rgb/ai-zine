@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-25",
+  "issue_no": 1,
+  "read_time_min": 3,
+  "brief": {
+    "hero_news": {
+      "id": "20261125-n1",
+      "category": "BIG NEWS",
+      "title": "브라우저 내장 WebGPU 추론, 별도 서버 없이 문서 요약 실현",
+      "summary": [
+        "최신 브라우저의 WebGPU 가속과 4비트 양자화 결합으로 3B급 모델이 탭 안에서 초당 45토큰으로 동작합니다.",
+        "민감한 PDF나 회의록을 외부 서버로 전송하지 않고 기기 안에서 즉시 요약·검색하는 제로 백엔드 앱이 늘고 있습니다.",
+        "초기 모델 가중치 캐싱(약 1.8GB)만 해결되면 모바일 PWA에서도 오프라인 AI 보조 기능이 기본값이 될 전망입니다."
+      ],
+      "source": "GeekNews",
+      "url": "https://news.hada.io/"
+    },
+    "hot_issue": {
+      "id": "20261125-n2",
+      "title": "긴 컨텍스트(1M 토큰) vs RAG, 실무 비용 손익분기점 공개",
+      "summary": [
+        "프롬프트 캐싱을 적용해도 문서 500페이지 이상에서는 하이브리드 RAG가 응답 지연과 비용 면에서 3배 유리했습니다.",
+        "반면 100페이지 이하의 코드베이스 전체 분석은 청킹 오류 없는 통컨텍스트 입력이 정확도에서 압승했습니다."
+      ],
+      "source": "Hacker News",
+      "url": "https://news.ycombinator.com/"
+    },
+    "term_of_day": {
+      "id": "20261125-t1",
+      "term": "Context Engineering (컨텍스트 엔지니어링)",
+      "analogy": "요리사(모델)에게 말투를 가르치는 대신, 딱 필요한 신선한 재료만 손질해 도마에 올려주는 기술",
+      "office_line": "회의실 멘트: 프롬프트 문구 다듬기보다 에이전트에 어떤 문맥을 넣어줄지 설계하는 컨텍스트 엔지니어링이 핵심입니다."
+    },
+    "daily_pick": {
+      "id": "20261125-p1",
+      "type": "tool",
+      "title": "repomix — 레포지토리 전체를 LLM 친화적 단일 파일로 패킹",
+      "description": "gitignore를 존중하면서 프로젝트 구조와 핵심 소스만 깔끔한 XML/Markdown으로 묶어 토큰 낭비를 줄여주는 무료 CLI입니다.",
+      "copy_text": "npx repomix --style markdown --ignore \"**/*.test.*\"",
+      "url": "https://github.com/yamadashy/repomix"
+    },
+    "lunch_talk": {
+      "quote": "RAG가 죽었다는 말이 매달 나오지만, 정작 프로덕션에서 제일 먼저 터지는 건 '컨텍스트에 쓰레기를 너무 많이 넣은' 에이전트입니다."
+    }
+  },
+  "buzz": [
+    {
+      "id": "20261125-b1",
+      "tag": "논쟁",
+      "title": "AI가 생성한 PR, 리뷰어가 100% 이해 못 한 채 머지해도 되는가",
+      "context": "스타트업 CTO가 '테스트만 통과하면 AI 작성 코드를 세부 라인까지 읽지 않고 배포한다'고 밝혀 찬반이 뜨겁습니다.",
+      "pro_side": "어셈블리 코드를 일일이 읽지 않듯, 명확한 명세와 자동화 테스트 스위트가 있다면 구현 세부는 추상화해도 됩니다.",
+      "con_side": "새벽 3시에 프로덕션 장애가 터졌을 때 아무도 원인을 모르는 코드는 기술 부채가 아니라 시한폭탄입니다.",
+      "comment_count": 356,
+      "source": "Hacker News",
+      "url": "https://news.ycombinator.com/"
+    },
+    {
+      "id": "20261125-b2",
+      "tag": "실전 팁 | 논쟁",
+      "title": "로컬 LLM용 RAM 64GB 맥북 vs 클라우드 API 월 5만원, 무엇이 이득인가",
+      "context": "r/LocalLLaMA에서 하드웨어 투자 회수 기간과 프라이버시 가치를 두고 현실 계산기가 돌아갔습니다.",
+      "pro_side": "오프라인 비행기·보안 사내망에서 눈치 보지 않고 무제한 실험할 수 있는 심리적 자유도가 돈 이상의 가치입니다.",
+      "con_side": "2년 뒤 구형이 될 장비에 수백만 원을 쓰기보다, 최신 플래그십 API를 필요할 때만 쓰는 게 성능·비용 모두 압도적입니다.",
+      "comment_count": 241,
+      "source": "r/LocalLLaMA",
+      "url": "https://www.reddit.com/r/LocalLLaMA/"
+    }
+  ]
+}

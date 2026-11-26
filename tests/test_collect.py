@@ -1,0 +1,140 @@
+"""Unit tests for collection, normalization, AI filtering, and deduplication (AC1)."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
+
+from pipeline.collect import (
+    RawItem,
+    deduplicate_items,
+    fetch_rss_source,
+    is_ai_related,
+    is_recent,
+    normalize_url,
+    title_similarity,
+)
+
+
+def test_normalize_url_strips_tracking_and_trailing_slash() -> None:
+    url1 = "https://www.Example.com/post/ai-news/?utm_source=hn&utm_medium=social&id=42#top"
+    url2 = "https://example.com/post/ai-news?id=42&ref=geeknews"
+    assert normalize_url(url1) == "https://example.com/post/ai-news?id=42"
+    assert normalize_url(url1) == normalize_url(url2)
+
+
+def test_deduplicate_removes_duplicate_urls_zero_remaining() -> None:
+    items = [
+        RawItem(
+            title="New Open-Weight LLM Released",
+            url="https://example.com/llm?utm_source=rss",
+            source="GeekNews",
+            score=60,
+        ),
+        RawItem(
+            title="Completely Different Title Same Link",
+            url="https://www.example.com/llm/",
+            source="Hacker News",
+            score=220,
+            comments=80,
+        ),
+        RawItem(
+            title="MCP Server Security Guide",
+            url="https://blog.example.org/mcp-security",
+            source="Hacker News",
+            score=150,
+            comments=60,
+        ),
+    ]
+
+    deduped = deduplicate_items(items)
+    urls = [item.url for item in deduped]
+    assert len(urls) == len(set(urls)) == 2
+    # Higher-ranked item (HN with score 220 + 80*1.5) should win for duplicate URL
+    assert any(item.source == "Hacker News" and item.url == "https://example.com/llm" for item in deduped)
+
+
+def test_deduplicate_removes_similar_titles_above_threshold() -> None:
+    low = RawItem(
+        title="Open-weight 32B reasoning model beats flagship on SWE-bench",
+        url="https://site-a.com/story-1",
+        source="r/LocalLLaMA",
+        score=40,
+    )
+    high = RawItem(
+        title="Open-weight 32B reasoning model beats flagship on SWE-bench!",
+        url="https://site-b.com/story-2",
+        source="Hacker News",
+        score=310,
+        comments=120,
+    )
+    assert title_similarity(low.title, high.title) >= 0.80
+
+    deduped = deduplicate_items([low, high])
+    assert len(deduped) == 1
+    assert deduped[0].source == "Hacker News"
+
+
+def test_deduplicate_keeps_distinct_items() -> None:
+    items = [
+        RawItem(title="vLLM 0.9 adds speculative decoding", url="https://a.com/1", source="GeekNews", score=80),
+        RawItem(title="WebGPU local inference in Chrome", url="https://b.com/2", source="Hacker News", score=180),
+    ]
+    deduped = deduplicate_items(items)
+    assert len(deduped) == 2
+
+
+def test_is_ai_related_filters_non_ai_noise() -> None:
+    assert is_ai_related("MCP server for PostgreSQL and Claude")
+    assert is_ai_related("로컬 추론 모델 양자화 벤치마크")
+    assert not is_ai_related("Best sourdough bread recipe for winter")
+    assert not is_ai_related("CSS Grid layout tips for responsive cards")
+
+
+def test_is_recent_window() -> None:
+    now = datetime(2026, 11, 26, 0, 0, tzinfo=timezone.utc)
+    assert is_recent(now - timedelta(hours=3), now=now, hours=24)
+    assert not is_recent(now - timedelta(hours=30), now=now, hours=24)
+
+
+def test_fetch_rss_source_handles_network_failure_gracefully() -> None:
+    mock_session = MagicMock()
+    mock_session.get.side_effect = TimeoutError("connection timed out")
+
+    items = fetch_rss_source(
+        {"name": "GeekNews", "url": "https://news.hada.io/rss/news", "kind": "news", "always_ai": False},
+        session=mock_session,
+    )
+    assert items == []
+
+
+def test_fetch_rss_source_parses_and_filters_ai_entries() -> None:
+    now_rfc = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    rss_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0"><channel><title>Test Feed</title>
+      <item>
+        <title>New LLM Agent Framework with MCP Support</title>
+        <link>https://example.com/agent-mcp</link>
+        <description>Open source agentic workflow toolkit</description>
+        <pubDate>{now_rfc}</pubDate>
+      </item>
+      <item>
+        <title>Gardening tips for spring tomatoes</title>
+        <link>https://example.com/tomatoes</link>
+        <description>Soil and sunlight guide</description>
+        <pubDate>{now_rfc}</pubDate>
+      </item>
+    </channel></rss>""".encode("utf-8")
+
+    mock_resp = MagicMock()
+    mock_resp.content = rss_xml
+    mock_resp.raise_for_status.return_value = None
+    mock_session = MagicMock()
+    mock_session.get.return_value = mock_resp
+
+    items = fetch_rss_source(
+        {"name": "GeekNews", "url": "https://news.hada.io/rss/news", "kind": "news", "always_ai": False},
+        session=mock_session,
+    )
+    assert len(items) == 1
+    assert items[0].url == "https://example.com/agent-mcp"

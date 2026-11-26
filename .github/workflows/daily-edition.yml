@@ -1,0 +1,63 @@
+name: Daily AI Zine Edition
+
+on:
+  schedule:
+    # Daily 06:30 KST (21:30 UTC previous day)
+    - cron: "30 21 * * *"
+    # Weekly Monday 06:00 KST (21:00 UTC Sunday) for Radar refresh
+    - cron: "0 21 * * 0"
+  workflow_dispatch:
+    inputs:
+      update_radar:
+        description: "Also refresh weekly GitHub AI Trending in radar.json"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-edition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run editorial pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
+        run: |
+          RADAR_FLAG=""
+          if [ "${{ github.event.schedule }}" = "0 21 * * 0" ] || [ "${{ inputs.update_radar }}" = "true" ]; then
+            RADAR_FLAG="--update-radar"
+          fi
+          python pipeline/main.py $RADAR_FLAG
+
+      - name: Verify generated JSON schemas
+        run: pytest tests/test_collect.py tests/test_schema.py -v
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/data/
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+          TODAY_KST=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          git commit -m "chore(edition): publish Morning AI Zine ${TODAY_KST}"
+          git push

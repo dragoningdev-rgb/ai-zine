@@ -1,0 +1,20 @@
+{
+  "name": "Morning AI Zine — 출근길 3분 AI 매거진",
+  "short_name": "AI Zine",
+  "description": "매일 아침 출근길 3분 만에 완독하는 개인용 AI 매거진",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F5F0",
+  "theme_color": "#D94E28",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

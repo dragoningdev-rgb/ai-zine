@@ -1,0 +1,69 @@
+{
+  "updated_at": "2026-11-23",
+  "week_label": "2026년 11월 4주차",
+  "github_trending_top5": [
+    {
+      "rank": 1,
+      "name": "modelcontextprotocol/servers",
+      "description": "다양한 SaaS·DB·로컬 도구를 LLM과 즉시 연결하는 공식 MCP 레퍼런스 서버 모음",
+      "weekly_stars": 4820,
+      "language": "TypeScript",
+      "url": "https://github.com/modelcontextprotocol/servers"
+    },
+    {
+      "rank": 2,
+      "name": "browser-use/browser-use",
+      "description": "AI 에이전트가 실제 웹 브라우저를 사람처럼 탐색·클릭·수집하도록 돕는 오픈소스 프레임워크",
+      "weekly_stars": 3640,
+      "language": "Python",
+      "url": "https://github.com/browser-use/browser-use"
+    },
+    {
+      "rank": 3,
+      "name": "vllm-project/vllm",
+      "description": "PagedAttention 기반 고처리량 오픈소스 LLM 추론 및 서빙 엔진",
+      "weekly_stars": 2910,
+      "language": "Python",
+      "url": "https://github.com/vllm-project/vllm"
+    },
+    {
+      "rank": 4,
+      "name": "ggerganov/llama.cpp",
+      "description": "노트북 CPU·Apple Silicon에서 양자화 LLM을 빠르게 구동하는 C/C++ 추론 런타임",
+      "weekly_stars": 2450,
+      "language": "C++",
+      "url": "https://github.com/ggerganov/llama.cpp"
+    },
+    {
+      "rank": 5,
+      "name": "yamadashy/repomix",
+      "description": "코드베이스 전체를 AI 프롬프트에 바로 넣기 좋은 단일 파일로 패킹하는 CLI 도구",
+      "weekly_stars": 1980,
+      "language": "TypeScript",
+      "url": "https://github.com/yamadashy/repomix"
+    }
+  ],
+  "model_rankings": {
+    "coding": [
+      { "rank": 1, "name": "Claude 4.5 Sonnet", "provider": "Anthropic", "score": 94.2, "delta": 0 },
+      { "rank": 2, "name": "Gemini 3 Pro", "provider": "Google", "score": 93.6, "delta": 1 },
+      { "rank": 3, "name": "GPT-5.1 Codex", "provider": "OpenAI", "score": 93.1, "delta": -1 },
+      { "rank": 4, "name": "DeepSeek-V3.5", "provider": "DeepSeek", "score": 90.4, "delta": "NEW" },
+      { "rank": 5, "name": "Qwen3-Coder-32B", "provider": "Alibaba", "score": 88.7, "delta": 1 }
+    ],
+    "reasoning": [
+      { "rank": 1, "name": "Gemini 3 Pro Thinking", "provider": "Google", "score": 95.8, "delta": 1 },
+      { "rank": 2, "name": "o4-high", "provider": "OpenAI", "score": 95.4, "delta": -1 },
+      { "rank": 3, "name": "Claude 4.5 Opus", "provider": "Anthropic", "score": 94.1, "delta": 0 },
+      { "rank": 4, "name": "DeepSeek-R2", "provider": "DeepSeek", "score": 92.6, "delta": "NEW" },
+      { "rank": 5, "name": "Grok 4 Reasoning", "provider": "xAI", "score": 90.8, "delta": -1 }
+    ],
+    "local": [
+      { "rank": 1, "name": "Qwen3-32B-Instruct", "provider": "Alibaba", "score": 87.9, "delta": 0 },
+      { "rank": 2, "name": "Gemma 3 27B", "provider": "Google", "score": 86.5, "delta": 1 },
+      { "rank": 3, "name": "Llama 4 Scout 17B", "provider": "Meta", "score": 86.1, "delta": -1 },
+      { "rank": 4, "name": "Mistral Small 3.1", "provider": "Mistral", "score": 84.3, "delta": "NEW" },
+      { "rank": 5, "name": "Phi-4 Reasoning 14B", "provider": "Microsoft", "score": 83.2, "delta": 0 }
+    ]
+  }
+}

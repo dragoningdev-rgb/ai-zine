@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#F7F5F0" id="meta-theme-color" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AI Zine" />
+  <title>Morning AI Zine — 출근길 3분 AI 매거진</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Editorial Header -->
+    <header class="top-header" role="banner">
+      <div class="header-top-row">
+        <div class="brand-group">
+          <span class="brand-kicker">MORNING AI ZINE</span>
+          <div class="issue-meta">
+            <span class="issue-badge" id="issue-badge">No.00</span>
+            <label class="date-picker-wrap" for="edition-select" aria-label="호수 날짜 선택">
+              <select id="edition-select" class="date-select"></select>
+              <span class="date-caret" aria-hidden="true">▾</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button
+            type="button"
+            id="btn-scrap-drawer"
+            class="icon-btn"
+            aria-label="스크랩 서랍 열기"
+            title="스크랩 서랍"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="badge-count" id="scrap-count" hidden>0</span>
+          </button>
+
+          <button
+            type="button"
+            id="btn-theme-toggle"
+            class="icon-btn"
+            aria-label="다크 모드 전환"
+            title="다크/라이트 모드"
+          >
+            <svg id="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg id="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden>
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Subtle progress bar for Tab 1 (Today) -->
+      <div class="read-progress-wrap" id="read-progress-wrap" aria-label="오늘의 완독 진행률">
+        <div class="read-progress-track">
+          <div class="read-progress-fill" id="read-progress-fill" style="width: 0%"></div>
+        </div>
+        <span class="read-progress-label" id="read-progress-label">0 / 5 카드 · 3분 컷</span>
+      </div>
+    </header>
+
+    <!-- Main Content Viewport -->
+    <main class="main-content" id="main-content" role="main">
+      <!-- Tab 1: 오늘 (Edition) -->
+      <section class="tab-panel active" id="panel-today" data-tab="today" aria-label="오늘의 에디션">
+        <div id="today-feed" class="today-feed"></div>
+      </section>
+
+      <!-- Tab 2: 불판 (Buzz) -->
+      <section class="tab-panel" id="panel-buzz" data-tab="buzz" aria-label="커뮤니티 불판" hidden>
+        <div class="section-intro">
+          <h1 class="section-title">커뮤니티 불판</h1>
+          <p class="section-sub">오늘 개발자 커뮤니티가 가장 뜨겁게 맞붙은 논쟁과 사고 실화</p>
+        </div>
+        <div id="buzz-feed" class="buzz-feed"></div>
+      </section>
+
+      <!-- Tab 3: 줍줍 (Archive) -->
+      <section class="tab-panel" id="panel-picks" data-tab="picks" aria-label="줍줍 무기고" hidden>
+        <div class="section-intro">
+          <h1 class="section-title">줍줍 무기고</h1>
+          <p class="section-sub">실무에 바로 써먹는 무료 툴·프롬프트·신조어 누적 아카이브</p>
+        </div>
+
+        <div class="picks-controls">
+          <div class="search-box">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="search"
+              id="picks-search"
+              class="search-input"
+              placeholder="키워드 검색 (예: MCP, 프롬프트, CLI)"
+              autocomplete="off"
+            />
+          </div>
+          <div class="chip-row" id="picks-chips" role="tablist" aria-label="태그 필터">
+            <button type="button" class="chip active" data-tag="ALL">전체</button>
+            <button type="button" class="chip" data-tag="#툴">#툴</button>
+            <button type="button" class="chip" data-tag="#프롬프트">#프롬프트</button>
+            <button type="button" class="chip" data-tag="#신조어">#신조어</button>
+          </div>
+        </div>
+
+        <div id="picks-list" class="picks-list"></div>
+      </section>
+
+      <!-- Tab 4: 판도 (Radar) -->
+      <section class="tab-panel" id="panel-radar" data-tab="radar" aria-label="주간 판도" hidden>
+        <div class="section-intro">
+          <div class="radar-head-row">
+            <h1 class="section-title">주간 판도</h1>
+            <span class="radar-updated" id="radar-updated">매주 월요일 갱신</span>
+          </div>
+          <p class="section-sub">이번 주 급상승한 AI 오픈소스와 부문별 LLM 순위 변동</p>
+        </div>
+
+        <div id="radar-content" class="radar-content"></div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation (Strictly 4 Tabs) -->
+    <nav class="bottom-nav" role="navigation" aria-label="메인 탭">
+      <button type="button" class="nav-item active" data-tab="today" aria-current="page">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>오늘</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="buzz">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+        </svg>
+        <span>불판</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="picks">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>줍줍</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="radar">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span>판도</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Scrap Drawer Modal -->
+  <div class="drawer-backdrop" id="scrap-backdrop" hidden></div>
+  <aside class="scrap-drawer" id="scrap-drawer" role="dialog" aria-modal="true" aria-label="스크랩 서랍" hidden>
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">스크랩 서랍</h2>
+        <p class="drawer-sub" id="drawer-sub">저장한 항목 0개</p>
+      </div>
+      <button type="button" class="icon-btn" id="btn-close-drawer" aria-label="서랍 닫기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="scrap-list"></div>
+  </aside>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="./lib/utils.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
