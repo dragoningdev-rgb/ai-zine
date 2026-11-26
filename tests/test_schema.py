@@ -133,17 +133,27 @@ def test_fallback_curate_and_publish_without_api_key(tmp_path: Path) -> None:
 
 
 def test_gemini_http_error_logs_status_code_and_falls_back(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify Gemini API error logs exact HTTP status, retries with backoff, masks key, and falls back cleanly."""
+    """Verify Gemini API error rotates through candidate models, logs HTTP status, masks key, and falls back cleanly."""
     import time
     from unittest.mock import MagicMock
 
     import requests
 
+    import pipeline.curate as curate_mod
     from pipeline.collect import RawItem
     from pipeline.curate import curate_edition
 
-    sleeps = []
-    monkeypatch.setattr(time, "sleep", lambda s: sleeps.append(s))
+    curate_mod._DISCOVERED_MODELS_CACHE.clear()
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+
+    fake_list = MagicMock(ok=True, status_code=200)
+    fake_list.json.return_value = {
+        "models": [
+            {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-3.5-flash-lite", "supportedGenerationMethods": ["generateContent"]},
+        ]
+    }
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: fake_list)
 
     fake_resp = MagicMock()
     fake_resp.ok = False
@@ -152,14 +162,62 @@ def test_gemini_http_error_logs_status_code_and_falls_back(caplog: pytest.LogCap
     monkeypatch.setattr(requests, "post", lambda *a, **kw: fake_resp)
 
     items = [RawItem(title="Test AI News", url="https://example.com/ai", source="GeekNews", summary="Detailed summary")]
-    with caplog.at_level("ERROR"):
+    with caplog.at_level("WARNING"):
         edition = curate_edition(items, date_str="2026-11-27", issue_no=3, gemini_api_key="SECRET_KEY_123", openai_api_key="")
 
     assert edition.date == "2026-11-27"
-    assert len(sleeps) == 4  # 5회 시도 사이 4번 지수 백오프 (5->10->20->30s)
+    assert "Switching model: gemini-3.8-flash -> gemini-3.5-flash-lite" in caplog.text
     assert "status=429" in caplog.text
     assert "SECRET_KEY_123" not in caplog.text
     assert "***REDACTED***" in caplog.text
+
+
+def test_gemini_503_rotates_to_next_flash_lite_model(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify HTTP 503 on gemini-3.8-flash retries once (3s) then switches to flash-lite and succeeds."""
+    import time
+    from unittest.mock import MagicMock
+
+    import requests
+
+    import pipeline.curate as curate_mod
+    from pipeline.curate import _call_gemini_with_rotation
+
+    curate_mod._DISCOVERED_MODELS_CACHE.clear()
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", lambda s: sleeps.append(s))
+
+    fake_list = MagicMock(ok=True, status_code=200)
+    fake_list.json.return_value = {
+        "models": [
+            {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-3.5-pro", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-3.5-flash-lite", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-embedding-001", "supportedGenerationMethods": ["embedContent"]},
+        ]
+    }
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: fake_list)
+
+    def fake_post(url: str, *args, **kwargs):
+        resp = MagicMock()
+        if "gemini-3.8-flash" in url:
+            resp.ok = False
+            resp.status_code = 503
+            resp.text = '{"error": {"code": 503, "message": "high demand"}}'
+            return resp
+        resp.ok = True
+        resp.status_code = 200
+        resp.json.return_value = {"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]}
+        return resp
+
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    with caplog.at_level("INFO"):
+        text, used_model = _call_gemini_with_rotation("hello", "KEY_503", "gemini-3.8-flash")
+
+    assert text == '{"ok": true}'
+    assert used_model == "gemini-3.5-flash-lite"
+    assert sleeps == [3.0]
+    assert "Switching model: gemini-3.8-flash -> gemini-3.5-flash-lite" in caplog.text
 
 
 def test_publish_edition_protects_existing_korean_edition_from_fallback(tmp_path: Path) -> None:

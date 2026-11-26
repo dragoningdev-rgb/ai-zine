@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import random
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -180,67 +179,84 @@ GEMINI_SYSTEM_INSTRUCTION = (
 
 
 GEMINI_MODELS_LIST_URL = "https://generativelanguage.googleapis.com/v1beta/models"
-GEMINI_EXCLUDE_MODEL_RE = re.compile(r"(embedding|imagen|veo|tts|audio|live|aqa|vision|bisect|robotics)", flags=re.IGNORECASE)
+GEMINI_EXCLUDE_MODEL_RE = re.compile(
+    r"(embedding|imagen|veo|tts|audio|live|aqa|vision|bisect|robotics|computer-use)",
+    flags=re.IGNORECASE,
+)
 
-# 503 / 429 / 타임아웃 시 지수 백오프 대기 시간(초): 5초 → 10초 → 20초 → 30초 (최대 5회 시도)
-LLM_MAX_ATTEMPTS = 5
-RETRY_BACKOFF_SECONDS = (5, 10, 20, 30)
-RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
-
-
-def _is_retryable_api_error(exc: LLMAPIError) -> bool:
-    """503/429/5xx 일시 장애 또는 네트워크·읽기 타임아웃이면 재시도 대상으로 판별합니다."""
-    return exc.status_code is None or exc.status_code in RETRYABLE_STATUS_CODES
-
-
-def _sleep_with_backoff(attempt: int) -> None:
-    """시도 횟수(1-based)에 맞춰 5→10→20→30초 + 소량 지터만큼 대기합니다."""
-    idx = min(max(attempt - 1, 0), len(RETRY_BACKOFF_SECONDS) - 1)
-    delay = RETRY_BACKOFF_SECONDS[idx] + random.uniform(0.0, 1.5)
-    logger.warning("Transient LLM error — backing off %.1fs before attempt %d/%d", delay, attempt + 1, LLM_MAX_ATTEMPTS)
-    time.sleep(delay)
+# Fail-Fast 멀티모델 순회 전환 설정: 503 시 3초 1회 재시도 후 즉시 다음 모델로 갈아탑니다.
+FAILOVER_503_WAIT_SECONDS = 3.0
+MAX_ROTATION_MODELS = 6
+NON_RETRYABLE_AUTH_CODES = {400, 401, 403}
+DEFAULT_GEMINI_CANDIDATES = (
+    "gemini-3.8-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+)
+_DISCOVERED_MODELS_CACHE: Dict[Tuple[str, str], List[str]] = {}
 
 
-def _discover_gemini_flash_models(api_key: str) -> List[str]:
-    """404 발생 시 v1beta/models를 조회해 generateContent를 지원하는 최신 Flash 모델 후보 목록을 찾습니다."""
+def _discover_gemini_models(api_key: str, primary_model: str = GEMINI_MODEL) -> List[str]:
+    """v1beta/models를 조회해 generateContent 지원 모델을 [1) 기본모델 → 2) 최신 flash-lite/flash → 3) 최신 pro] 순으로 정렬합니다."""
+    cache_key = (api_key, primary_model)
+    if cache_key in _DISCOVERED_MODELS_CACHE:
+        return list(_DISCOVERED_MODELS_CACHE[cache_key])
+
+    discovered: List[str] = []
     try:
-        resp = requests.get(GEMINI_MODELS_LIST_URL, params={"key": api_key}, timeout=15)
-        if not resp.ok:
-            logger.warning("Gemini ListModels failed (status=%d): %s", resp.status_code, _mask_secret(resp.text[:300], api_key))
-            return []
-        models = resp.json().get("models", [])
+        resp = requests.get(GEMINI_MODELS_LIST_URL, params={"key": api_key}, timeout=10)
+        if resp.ok:
+            for m in resp.json().get("models", []):
+                name = str(m.get("name") or "")
+                methods = m.get("supportedGenerationMethods") or []
+                if "generateContent" not in methods:
+                    continue
+                short_name = name.replace("models/", "", 1).strip()
+                if not short_name.startswith("gemini-") or GEMINI_EXCLUDE_MODEL_RE.search(short_name):
+                    continue
+                discovered.append(short_name)
+        else:
+            logger.warning(
+                "Gemini ListModels failed (status=%d): %s",
+                resp.status_code,
+                _mask_secret(resp.text[:240], api_key),
+            )
     except Exception as exc:
-        logger.warning("Gemini ListModels network error: %s", _mask_secret(str(exc), api_key))
-        return []
+        logger.warning("Gemini ListModels network error (using default candidate queue): %s", _mask_secret(str(exc), api_key))
 
-    candidates: List[str] = []
-    for m in models:
-        name = str(m.get("name") or "")
-        methods = m.get("supportedGenerationMethods") or []
-        if "generateContent" not in methods:
-            continue
-        short_name = name.replace("models/", "", 1).strip()
-        if not short_name.startswith("gemini-") or GEMINI_EXCLUDE_MODEL_RE.search(short_name):
-            continue
-        if "flash" in short_name.lower():
-            candidates.append(short_name)
+    if not discovered:
+        fallback_queue = list(dict.fromkeys([primary_model, *DEFAULT_GEMINI_CANDIDATES]))
+        _DISCOVERED_MODELS_CACHE[cache_key] = fallback_queue
+        return list(fallback_queue)
 
-    # 최신 버전(높은 숫자) 및 일반 Flash(non-lite/non-exp 우선) 순으로 정렬합니다.
-    def _sort_key(model_name: str) -> tuple:
-        ver_match = re.search(r"gemini-(\d+(?:\.\d+)?)", model_name)
+    # 우선순위 정렬: 1) primary_model → 2) 최신 flash-lite/flash → 3) 최신 pro → 4) 기타 gemini
+    def _priority_key(model_name: str) -> tuple:
+        lower = model_name.lower()
+        if model_name == primary_model:
+            tier = 0
+        elif "flash-lite" in lower:
+            tier = 1
+        elif "flash" in lower:
+            tier = 2
+        elif "pro" in lower:
+            tier = 3
+        else:
+            tier = 4
+        ver_match = re.search(r"gemini-(\d+(?:\.\d+)?)", lower)
         ver = float(ver_match.group(1)) if ver_match else 0.0
-        is_lite = 1 if "lite" in model_name else 0
-        is_preview = 1 if ("exp" in model_name or "preview" in model_name) else 0
-        return (-ver, is_lite, is_preview, model_name)
+        is_exp = 1 if ("exp" in lower or "preview" in lower) else 0
+        return (tier, -ver, is_exp, model_name)
 
-    candidates.sort(key=_sort_key)
-    if candidates:
-        logger.info("Discovered live Gemini Flash models via v1beta/models: %s", ", ".join(candidates[:6]))
-    return candidates
+    ordered = sorted(dict.fromkeys([primary_model, *discovered]), key=_priority_key)
+    queue = ordered[:MAX_ROTATION_MODELS]
+    logger.info("Gemini failover queue resolved: %s", " -> ".join(queue))
+    _DISCOVERED_MODELS_CACHE[cache_key] = queue
+    return list(queue)
 
 
 def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    """Google Gemini REST API(v1beta/models/{model}:generateContent)를 호출하고 성공/실패 상세 로그를 남깁니다."""
+    """Google Gemini REST API(v1beta/models/{model}:generateContent)를 Fail-Fast 타임아웃(35초)으로 호출합니다."""
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     try:
         resp = requests.post(
@@ -255,13 +271,13 @@ def _call_gemini(prompt: str, api_key: str, model: str) -> str:
                     "responseMimeType": "application/json",
                 },
             },
-            timeout=(15, LLM_TIMEOUT),
+            timeout=(10, LLM_TIMEOUT),
         )
     except requests.RequestException as exc:
         raise LLMAPIError("Gemini", None, _mask_secret(str(exc), api_key)) from exc
 
     if not resp.ok:
-        body_preview = _mask_secret(resp.text[:600].replace("\n", " "), api_key)
+        body_preview = _mask_secret(resp.text[:500].replace("\n", " "), api_key)
         raise LLMAPIError("Gemini", resp.status_code, f"endpoint={endpoint} body={body_preview}")
 
     try:
@@ -273,25 +289,52 @@ def _call_gemini(prompt: str, api_key: str, model: str) -> str:
         raise LLMAPIError("Gemini", resp.status_code, f"unexpected response structure: {resp.text[:400]}") from exc
 
 
-def _call_gemini_smart(prompt: str, api_key: str, primary_model: str) -> str:
-    """primary_model(기본 gemini-3.8-flash)을 먼저 호출하고, HTTP 404 시 v1beta/models에서 가용 Flash 모델을 자동 탐색해 재시도합니다."""
-    try:
-        return _call_gemini(prompt, api_key, primary_model)
-    except LLMAPIError as exc:
-        if exc.status_code != 404:
-            raise
-        logger.warning(
-            "Primary Gemini model '%s' returned HTTP 404; querying v1beta/models for an available Flash model.",
-            primary_model,
-        )
-        discovered = [m for m in _discover_gemini_flash_models(api_key) if m != primary_model]
-        for alt_model in discovered[:2]:
+def _call_gemini_with_rotation(prompt: str, api_key: str, primary_model: str) -> Tuple[str, str]:
+    """가용 모델 큐를 순회하며 503 시 3초 1회 재시도 후 즉시 다음 모델로 갈아타고 (응답텍스트, 성공모델명)을 반환합니다."""
+    queue = _discover_gemini_models(api_key, primary_model=primary_model)
+    last_exc: Optional[LLMAPIError] = None
+
+    for idx, model in enumerate(queue):
+        attempts_for_model = 2  # 503일 때만 3초 대기 후 1회 재시도, 그 외 실패는 즉시 다음 모델로 전환
+        for sub_try in range(1, attempts_for_model + 1):
             try:
-                logger.info("Retrying Gemini API with discovered model: %s", alt_model)
-                return _call_gemini(prompt, api_key, alt_model)
-            except LLMAPIError as alt_exc:
-                logger.error("Discovered model '%s' also failed (status=%s): %s", alt_model, alt_exc.status_code, alt_exc.detail)
-        raise
+                text = _call_gemini(prompt, api_key, model)
+                if idx > 0:
+                    logger.info("Failover succeeded on model: %s (from primary=%s)", model, primary_model)
+                return text, model
+            except LLMAPIError as exc:
+                last_exc = exc
+                if exc.status_code in NON_RETRYABLE_AUTH_CODES:
+                    logger.error("Non-retryable Gemini auth/request error on %s (status=%s): %s", model, exc.status_code, exc.detail)
+                    raise
+                if exc.status_code == 503 and sub_try == 1:
+                    logger.warning(
+                        "Model %s returned HTTP 503 (high demand); retrying once after %.0fs...",
+                        model,
+                        FAILOVER_503_WAIT_SECONDS,
+                    )
+                    time.sleep(FAILOVER_503_WAIT_SECONDS)
+                    continue
+                next_model = queue[idx + 1] if idx + 1 < len(queue) else None
+                if next_model:
+                    logger.warning(
+                        "Switching model: %s -> %s (reason: status=%s)",
+                        model,
+                        next_model,
+                        exc.status_code or "TIMEOUT",
+                    )
+                else:
+                    logger.error("Last candidate model %s failed (status=%s): %s", model, exc.status_code, exc.detail)
+                break
+
+    assert last_exc is not None
+    raise last_exc
+
+
+def _call_gemini_smart(prompt: str, api_key: str, primary_model: str) -> str:
+    """하위 호환 래퍼: 멀티모델 Fail-Fast 순회 호출 후 응답 텍스트만 반환합니다."""
+    text, _ = _call_gemini_with_rotation(prompt, api_key, primary_model)
+    return text
 
 
 def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) -> str:
@@ -349,43 +392,33 @@ def summarize_github_repos(
         + json.dumps(repos, ensure_ascii=False)
     )
 
-    for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
-        try:
-            raw = (
-                _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
-                if g_key
-                else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
-            )
-            parsed = _extract_json_payload(raw)
-            if not isinstance(parsed, dict):
-                return {}
-            out: Dict[str, Dict[str, Any]] = {}
-            for k, v in parsed.items():
-                if not isinstance(v, dict):
-                    continue
-                desc = truncate_text(str(v.get("description") or ""), 90)
-                ds = v.get("detail_summary")
-                detail_clean = None
-                if isinstance(ds, dict) and (ds.get("what_how") or ds.get("what")):
-                    detail_clean = {
-                        "what_how": truncate_text(str(ds.get("what_how") or ds.get("what") or ""), 220),
-                        "reactions": truncate_text(str(ds.get("reactions") or ds.get("how") or ""), 220),
-                        "use_case": truncate_text(str(ds.get("use_case") or ""), 160),
-                    }
-                out[str(k)] = {"description": desc, "detail_summary": detail_clean}
-            return out
-        except LLMAPIError as exc:
-            logger.warning("GitHub repo summarization attempt %d/%d failed (status=%s): %s", attempt, LLM_MAX_ATTEMPTS, exc.status_code, exc.detail)
-            if attempt < LLM_MAX_ATTEMPTS and _is_retryable_api_error(exc):
-                _sleep_with_backoff(attempt)
+    try:
+        if g_key:
+            raw, used_model = _call_gemini_with_rotation(prompt, g_key, GEMINI_MODEL)
+            logger.info("GitHub repo detail summarization succeeded via %s", used_model)
+        else:
+            raw = _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
+
+        parsed = _extract_json_payload(raw)
+        if not isinstance(parsed, dict):
+            return {}
+        out: Dict[str, Dict[str, Any]] = {}
+        for k, v in parsed.items():
+            if not isinstance(v, dict):
                 continue
-            break
-        except Exception as exc:
-            logger.warning("GitHub repo detail summarization failed on attempt %d/%d: %s", attempt, LLM_MAX_ATTEMPTS, exc)
-            if attempt < LLM_MAX_ATTEMPTS:
-                _sleep_with_backoff(attempt)
-                continue
-            break
+            desc = truncate_text(str(v.get("description") or ""), 90)
+            ds = v.get("detail_summary")
+            detail_clean = None
+            if isinstance(ds, dict) and (ds.get("what_how") or ds.get("what")):
+                detail_clean = {
+                    "what_how": truncate_text(str(ds.get("what_how") or ds.get("what") or ""), 220),
+                    "reactions": truncate_text(str(ds.get("reactions") or ds.get("how") or ""), 220),
+                    "use_case": truncate_text(str(ds.get("use_case") or ""), 160),
+                }
+            out[str(k)] = {"description": desc, "detail_summary": detail_clean}
+        return out
+    except Exception as exc:
+        logger.warning("GitHub repo detail summarization failed across all candidate models: %s", exc)
     return {}
 
 
@@ -572,48 +605,41 @@ def curate_edition_with_status(
     prompt = _build_editor_prompt(items, date_str, issue_no)
     last_error = "unknown error"
 
-    for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
+    # JSON 파싱/스키마 오류 시에만 1회 재시도(API 503/429/타임아웃은 _call_gemini_with_rotation이 즉시 다른 모델로 순회 처리)
+    for attempt in range(1, 3):
         try:
-            raw = (
-                _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
-                if g_key
-                else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
-            )
+            if g_key:
+                raw, used_model = _call_gemini_with_rotation(prompt, g_key, GEMINI_MODEL)
+            else:
+                raw = _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
+                used_model = OPENAI_MODEL
+
             parsed = _extract_json_payload(raw)
             parsed["date"] = date_str
             parsed["issue_no"] = issue_no
             edition = Edition.model_validate(parsed)
-            logger.info("LLM curation succeeded via %s on attempt %d/%d", provider, attempt, LLM_MAX_ATTEMPTS)
+            logger.info("LLM curation succeeded via %s (attempt %d/2)", used_model, attempt)
             return edition, False
         except LLMAPIError as exc:
             last_error = str(exc)
             logger.error(
-                "LLM API call failed on attempt %d/%d (%s, status=%s): %s",
-                attempt,
-                LLM_MAX_ATTEMPTS,
+                "All rotated LLM models failed (%s, status=%s): %s",
                 exc.provider,
                 exc.status_code,
                 exc.detail,
             )
-            if attempt < LLM_MAX_ATTEMPTS and _is_retryable_api_error(exc):
-                _sleep_with_backoff(attempt)
-                continue
-            if not _is_retryable_api_error(exc):
-                break
+            break
         except (KeyError, ValueError, json.JSONDecodeError, ValidationError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
             logger.error(
-                "LLM output parsing/schema validation failed on attempt %d/%d (%s): %s",
+                "LLM output parsing/schema validation failed on attempt %d/2 (%s): %s",
                 attempt,
-                LLM_MAX_ATTEMPTS,
                 provider,
                 last_error,
             )
-            if attempt < LLM_MAX_ATTEMPTS:
-                _sleep_with_backoff(attempt)
 
     logger.error(
-        "FALLBACK_TRIGGERED: All LLM attempts failed via %s. Last error: %s. Generating rule-based fallback edition.",
+        "FALLBACK_TRIGGERED: All LLM candidates failed (%s). Last error: %s. Generating rule-based fallback edition.",
         provider,
         last_error,
     )

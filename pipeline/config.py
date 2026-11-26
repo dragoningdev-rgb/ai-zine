@@ -13,7 +13,7 @@ EDITIONS_DIR = DATA_DIR / "editions"
 # HTTP / Networking
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
 ARTICLE_META_TIMEOUT = int(os.getenv("ARTICLE_META_TIMEOUT", "5"))
-LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "90"))
+LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "35"))
 USER_AGENT = "MorningAIZine/1.0 (+https://github.com/morning-ai-zine)"
 MAX_WORKERS = 6
 LOOKBACK_HOURS = 24
