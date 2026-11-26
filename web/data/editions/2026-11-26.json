@@ -19,8 +19,8 @@
       "id": "20261126-n2",
       "title": "Jev is probably Qwen3.5-35B-A3B",
       "summary": [
-        "HN score 224, 64 comments",
-        "Hacker News에서 추천 224·댓글 64건과 함께 실전 적용 논의가 이어지고 있습니다."
+        "TypeSafe doesn't disclose Jev's backbone. Self-identification, tokenizer, and throughput tests all point to Q…",
+        "Hacker News에서 추천 258·댓글 75건과 함께 실전 적용 논의가 이어지고 있습니다."
       ],
       "source": "Hacker News",
       "url": "https://modaic.dev/blog/latency-doesnt-lie"
@@ -47,24 +47,24 @@
     {
       "id": "20261126-b1",
       "tag": "커뮤니티 논쟁",
-      "title": "Ask HN: Anthropic is accusing my company of distilling. How can I pro…",
-      "context": "HN score 442, 339 comments",
-      "pro_side": "Whatever you submit in 24h, submit the same evidence to Claude and ask it to tell you if it's sufficient evidence to ma…",
-      "con_side": "This happened to me with oai, and I only found out bc of a truly bizarre billing issue and reaching out to friends who…",
-      "comment_count": 339,
+      "title": "Much shorter version of GRH Lean verification from Anthropic",
+      "context": "A short Lean 4 proof of the Generalized Riemann Hypothesis - lsernau/grh-lean",
+      "pro_side": "Nice! The more readable 300kloc proof even has a clear \"known math\" vs \"new math\" split and human-readable documentatio…",
+      "con_side": "From ~17M lines to just ~76k lines, a 99.56% reduction.",
+      "comment_count": 166,
       "source": "Hacker News",
-      "url": "https://news.ycombinator.com/item?id=50630809"
+      "url": "https://github.com/lsernau/grh-lean"
     },
     {
       "id": "20261126-b2",
       "tag": "커뮤니티 논쟁",
-      "title": "Models Can Communicate via Inference Servers Despite Being Sandboxed",
-      "context": "TL;DR * Two agents running on the same inference server can reliably communicate, even if they cannot send each other messages or access th…",
-      "pro_side": "This shared LV cache thing is, in my mind, ridiculous. Web browser developers learned, quite a while ago, that caches n…",
-      "con_side": "None of the attacks discussed here are realistic in any way. They require a bunch of extremely improbable conditions to…",
-      "comment_count": 197,
+      "title": "The New York Times warns photographers not to update Photoshop over A…",
+      "context": "The NYT doesn’t want AI metadata inadvertently added to its photos.",
+      "pro_side": "I work in the creative tools space. This is one of the biggest issues right now. It's nearly impossible to separate \"th…",
+      "con_side": "Vanishingly few people _enjoy_ encountering generative AI in images or sounds in the wild. The most likely positive sen…",
+      "comment_count": 206,
       "source": "Hacker News",
-      "url": "https://lesswrong.com/posts/7wzWuLP3HhyBLmKfo/models-can-communicate-via-inference-servers-despite-being"
+      "url": "https://theverge.com/ai-artificial-intelligence/1041227/the-new-york-times-warns-photographers-not-to-update-photoshop-over-ai-features"
     },
     {
       "id": "20261126-b3",
@@ -73,7 +73,7 @@
       "context": "GPT-6 models design protein structures and sequences using reasoning and code. Lab tests found evidence of binding across five targets.",
       "pro_side": "> We gave GPT‑6.2 the three-dimensional structures of five target proteins and marked where we wanted a minibinder to a…",
       "con_side": "> To turn GPT‑6.2’s three-dimensional designs into proteins we could test in the lab, we needed amino acid sequences th…",
-      "comment_count": 96,
+      "comment_count": 97,
       "source": "Hacker News",
       "url": "https://openai.com/index/gpt-6-models-demonstrate-intrinsic-protein-design-capabilities"
     }
