@@ -4,12 +4,13 @@
     {
       "id": "20261126-p1",
       "date": "2026-11-26",
-      "tag": "#프롬프트",
-      "type": "prompt",
-      "title": "PR 리뷰 전 셀프 체크리스트 생성 프롬프트",
-      "description": "diff를 붙여 넣으면 단순 스타일 지적이 아니라 장애 유발 포인트와 누락된 엣지 케이스만 5줄로 짚어줍니다.",
-      "copy_text": "아래 git diff를 시니어 SRE 관점에서 검토해줘. 코드 스타일은 무시하고 1) 장애 가능성 2) 경계값 누락 3) 롤백 리스크만 우선순위 순으로 5줄 이내로 요약해줘.",
-      "url": "https://github.com/trending"
+      "tag": "#툴",
+      "type": "tool",
+      "title": "NousResearch/hermes-agent: The agent that grows with you",
+      "description": "The agent that grows with you",
+      "copy_text": "git clone https://github.com/NousResearch/hermes-agent.git",
+      "office_line": null,
+      "url": "https://github.com/NousResearch/hermes-agent"
     },
     {
       "id": "20261126-t1",
@@ -18,7 +19,9 @@
       "type": "term",
       "title": "MCP (Model Context Protocol)",
       "description": "AI 모델에 외부 도구와 사내 데이터를 꽂아 쓰는 USB-C 표준 포트",
-      "office_line": "회의실 멘트: 앞으로 사내 시스템 연동은 개별 플러그인 대신 MCP 규격으로 통일하는 추세입니다."
+      "copy_text": null,
+      "office_line": "회의실 멘트: 앞으로 사내 시스템 연동은 개별 플러그인 대신 MCP 규격으로 통일하는 추세입니다.",
+      "url": null
     },
     {
       "id": "20261125-p1",
@@ -28,6 +31,7 @@
       "title": "repomix — 레포지토리 전체를 LLM 친화적 단일 파일로 패킹",
       "description": "gitignore를 존중하면서 프로젝트 구조와 핵심 소스만 깔끔한 XML/Markdown으로 묶어 토큰 낭비를 줄여주는 무료 CLI입니다.",
       "copy_text": "npx repomix --style markdown --ignore \"**/*.test.*\"",
+      "office_line": null,
       "url": "https://github.com/yamadashy/repomix"
     },
     {
@@ -37,7 +41,9 @@
       "type": "term",
       "title": "Context Engineering (컨텍스트 엔지니어링)",
       "description": "요리사(모델)에게 말투를 가르치는 대신, 딱 필요한 신선한 재료만 손질해 도마에 올려주는 기술",
-      "office_line": "회의실 멘트: 프롬프트 문구 다듬기보다 에이전트에 어떤 문맥을 넣어줄지 설계하는 컨텍스트 엔지니어링이 핵심입니다."
+      "copy_text": null,
+      "office_line": "회의실 멘트: 프롬프트 문구 다듬기보다 에이전트에 어떤 문맥을 넣어줄지 설계하는 컨텍스트 엔지니어링이 핵심입니다.",
+      "url": null
     },
     {
       "id": "20261124-p1",
@@ -47,6 +53,7 @@
       "title": "uv — 파이썬 의존성 설치를 10배 빠르게 끝내는 Rust 패키지 매니저",
       "description": "가상환경 생성부터 requirements 동기화까지 몇 초 만에 끝내 CI/CD 파이프라인 실행 시간을 극적으로 줄여줍니다.",
       "copy_text": "uv venv && uv pip install -r requirements.txt",
+      "office_line": null,
       "url": "https://github.com/astral-sh/uv"
     }
   ]
