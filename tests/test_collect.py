@@ -192,18 +192,18 @@ def test_fetch_onprem_open_llms_keeps_only_official_models() -> None:
     mock_resp = MagicMock()
     mock_resp.raise_for_status.return_value = None
     mock_resp.json.return_value = [
-        {"id": "randomuser/Model-GGUF-abliterated", "likes": 99999, "tags": ["gguf"]},
-        {"id": "Qwen/Qwen2.5-Coder-32B-Instruct", "likes": 4100, "tags": ["license:apache-2.0"]},
-        {"id": "LGAI-EXAONE/EXAONE-3.5-32B-Instruct", "likes": 1200, "tags": ["license:exaone"]},
+        {"id": "randomuser/Model-GGUF-abliterated", "likes": 99999, "trendingScore": 999, "tags": ["gguf"]},
+        {"id": "Qwen/Qwen3.8-27B-Instruct", "likes": 1800, "trendingScore": 450, "tags": ["license:apache-2.0"]},
+        {"id": "LGAI-EXAONE/EXAONE-3.5-32B-Instruct", "likes": 1200, "trendingScore": 120, "tags": ["license:exaone"]},
     ]
     mock_session = MagicMock()
     mock_session.get.return_value = mock_resp
 
     models = fetch_onprem_open_llms(session=mock_session)
     assert len(models) == 2
-    assert models[0]["name"] == "Qwen2.5-Coder-32B-Instruct"
+    assert models[0]["name"] == "Qwen3.8-27B-Instruct"
     assert models[0]["license"] == "Apache 2.0"
-    assert "32B" in models[0]["params_vram"]
+    assert "27B" in models[0]["params_vram"]
     assert models[0]["vllm_supported"] is True
 
 
@@ -212,14 +212,36 @@ def test_fetch_major_bigtech_models_parses_openrouter() -> None:
     mock_resp.raise_for_status.return_value = None
     mock_resp.json.return_value = {
         "data": [
-            {"id": "google/gemini-2.5-pro", "context_length": 1000000},
-            {"id": "anthropic/claude-3.7-sonnet", "context_length": 200000},
+            {
+                "id": "google/gemini-3-pro",
+                "name": "Google: Gemini 3 Pro",
+                "created": 1760000000,
+                "context_length": 1000000,
+                "pricing": {"prompt": "0.00000125", "completion": "0.00001"},
+            },
+            {
+                "id": "google/gemini-2.5-flash-lite",
+                "name": "Google: Gemini 2.5 Flash Lite",
+                "created": 1765000000,
+                "context_length": 1000000,
+                "pricing": {"prompt": "0.0000001", "completion": "0.0000004"},
+            },
+            {
+                "id": "anthropic/claude-4.5-sonnet",
+                "name": "Anthropic: Claude 4.5 Sonnet",
+                "created": 1759000000,
+                "context_length": 200000,
+                "pricing": {"prompt": "0.000003", "completion": "0.000015"},
+            },
         ]
     }
     mock_session = MagicMock()
     mock_session.get.return_value = mock_resp
 
     majors = fetch_major_bigtech_models(session=mock_session)
-    assert len(majors) == 5
-    assert majors[0]["provider"] == "Google"
+    assert len(majors) == 2
+    assert majors[0]["name"] == "Gemini 3 Pro"
     assert majors[0]["context_window"] == "1M"
+    assert majors[0]["input_price"] == "$1.25"
+    assert majors[0]["output_price"] == "$10.0"
+    assert majors[1]["name"] == "Claude 4.5 Sonnet"

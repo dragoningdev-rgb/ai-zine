@@ -126,20 +126,20 @@ class GithubTrendingRepo(BaseModel):
     url: str = Field(..., min_length=1)
 
 
-# 판도 탭 — 1) 메이저 빅테크 플래그십 모델 비교 항목
+# 판도 탭 — 1) 메이저 빅테크 최신 플래그십 모델 비교 항목 (OpenRouter 실데이터 기반)
 class MajorModelEntry(BaseModel):
     rank: int = Field(..., ge=1, le=10)
     name: str = Field(..., min_length=1)
     provider: str = Field(..., min_length=1)
-    overall: float = Field(..., ge=0)
-    coding: float = Field(..., ge=0)
-    reasoning: float = Field(..., ge=0)
-    context_window: Optional[str] = None
+    context_window: str = Field(..., min_length=1)
+    input_price: str = Field(..., min_length=1)
+    output_price: str = Field(..., min_length=1)
+    released_at: Optional[str] = None
     delta: Union[int, Literal["NEW"]] = 0
     url: Optional[str] = None
 
 
-# 판도 탭 — 2) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM 항목
+# 판도 탭 — 2) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM 항목 (HuggingFace 공식 조직 실시간)
 class OnPremModelEntry(BaseModel):
     rank: int = Field(..., ge=1, le=10)
     name: str = Field(..., min_length=1)
@@ -147,6 +147,7 @@ class OnPremModelEntry(BaseModel):
     license: str = Field(..., min_length=1)
     params_vram: str = Field(..., min_length=1)
     vllm_supported: bool = True
+    trending_score: float = Field(default=0.0, ge=0)
     likes: int = Field(default=0, ge=0)
     delta: Union[int, Literal["NEW"]] = 0
     url: Optional[str] = None

@@ -613,14 +613,14 @@
               <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
               <div class="rank-model">
                 <span class="rank-model-name">${escapeHTML(m.name)}</span>
-                <span class="rank-provider">${escapeHTML(m.provider)}${m.context_window ? ` · ${escapeHTML(m.context_window)}` : ""}</span>
+                <span class="rank-provider">${escapeHTML(m.provider)}${m.released_at ? ` · ${escapeHTML(m.released_at)} 출시` : ""}</span>
               </div>
               ${renderDeltaBadge(m.delta)}
             </div>
             <div class="metric-strip">
-              <span class="metric-chip strong">종합 <strong>${Number(m.overall).toFixed(1)}</strong></span>
-              <span class="metric-chip">코딩 <strong>${Number(m.coding).toFixed(1)}</strong></span>
-              <span class="metric-chip">추론 <strong>${Number(m.reasoning).toFixed(1)}</strong></span>
+              <span class="metric-chip strong">컨텍스트 <strong>${escapeHTML(m.context_window || "—")}</strong></span>
+              <span class="metric-chip">입력/1M <strong>${escapeHTML(m.input_price || "—")}</strong></span>
+              <span class="metric-chip">출력/1M <strong>${escapeHTML(m.output_price || "—")}</strong></span>
             </div>`;
           return m.url
             ? `<a class="rank-card" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`

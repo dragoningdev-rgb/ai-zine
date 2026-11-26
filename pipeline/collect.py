@@ -545,121 +545,129 @@ def fetch_hf_daily_papers(session: Optional[requests.Session] = None) -> List[Ra
 
 # 폐쇄망 오픈LLM 수집 시 개인 양자화·검열제거·병합 파생 모델을 엄격히 차단하는 정규식
 OPEN_LLM_EXCLUDE_RE = re.compile(
-    r"(gguf|abliterated|uncensored|heretic|merged|merge|exl2|exl3|mlx|awq|gptq|bnb|4bit|8bit|fp4|lora|adapter|base$|-base\b|vision-preview|embed|rerank|reward|guard)",
+    r"(gguf|abliterated|uncensored|heretic|merged|merge|exl2|exl3|mlx|awq|gptq|bnb|4bit|8bit|fp4|lora|adapter|base$|-base\b|vision-preview|embed|rerank|reward|guard|omni|audio|tts|asr|ocr|vl$|vl-)",
     flags=re.IGNORECASE,
 )
 PARAM_SIZE_RE = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]\b")
 
-# 메이저 빅테크 플래그십 모델 공개 벤치마크 기준표 (OpenRouter 공개 API 실존 여부·컨텍스트와 결합)
-MAJOR_FLAGSHIP_SPECS = [
-    {
-        "openrouter_prefixes": ("google/gemini-2.5-pro", "google/gemini-2.5-flash"),
-        "name": "Gemini 2.5 Pro / Flash",
-        "provider": "Google",
-        "overall": 91.4,
-        "coding": 90.8,
-        "reasoning": 93.2,
-        "context_window": "1M",
-        "url": "https://openrouter.ai/google/gemini-2.5-pro",
-    },
-    {
-        "openrouter_prefixes": ("anthropic/claude-3.7-sonnet", "anthropic/claude-3.5-sonnet"),
-        "name": "Claude 3.7 Sonnet",
-        "provider": "Anthropic",
-        "overall": 90.8,
-        "coding": 93.4,
-        "reasoning": 89.7,
-        "context_window": "200K",
-        "url": "https://openrouter.ai/anthropic/claude-3.7-sonnet",
-    },
-    {
-        "openrouter_prefixes": ("openai/gpt-4o", "openai/o1"),
-        "name": "GPT-4o / o1",
-        "provider": "OpenAI",
-        "overall": 89.9,
-        "coding": 90.2,
-        "reasoning": 91.8,
-        "context_window": "128K",
-        "url": "https://openrouter.ai/openai/gpt-4o",
-    },
-    {
-        "openrouter_prefixes": ("deepseek/deepseek-r1", "deepseek/deepseek-chat"),
-        "name": "DeepSeek-V3 / R1",
-        "provider": "DeepSeek",
-        "overall": 88.7,
-        "coding": 88.4,
-        "reasoning": 90.5,
-        "context_window": "128K",
-        "url": "https://openrouter.ai/deepseek/deepseek-r1",
-    },
-    {
-        "openrouter_prefixes": ("x-ai/grok-3", "x-ai/grok-2"),
-        "name": "Grok 3",
-        "provider": "xAI",
-        "overall": 88.1,
-        "coding": 86.9,
-        "reasoning": 89.4,
-        "context_window": "131K",
-        "url": "https://openrouter.ai/x-ai/grok-3",
-    },
-]
+# 5대 메이저 빅테크 OpenRouter prefix 매핑 (하드코딩된 모델명·임의 점수 없이 API에서 실시간 선별)
+MAJOR_BIGTECH_PROVIDERS = (
+    ("google/", "Google"),
+    ("anthropic/", "Anthropic"),
+    ("openai/", "OpenAI"),
+    ("deepseek/", "DeepSeek"),
+    ("x-ai/", "xAI"),
+)
+
+# OpenRouter 모델 중 경량/특수/비플래그십(음악·이미지·임베딩 등) 변형을 제외하고 주력 LLM 플래그십을 고르기 위한 필터
+NON_FLAGSHIP_RE = re.compile(
+    r"(:free|:beta|:extended|embed|whisper|tts|audio|image|vision|\bnano\b|\bmini\b|\blite\b|haiku|gemma|lyria|imagen|veo|moderation|search|online|realtime|guard|distill|r1-zero|prover|chat-v2|coder-v2|gpt-3\.5|flash-lite|flash-8b|\blive\b|preview-tts|safeguard|codex-mini)",
+    flags=re.IGNORECASE,
+)
 
 
 def _format_context_window(ctx_len: int) -> str:
     if ctx_len >= 1_000_000:
-        return f"{ctx_len // 1_000_000}M"
+        val = ctx_len / 1_000_000
+        return f"{int(val)}M" if val.is_integer() else f"{val:.1f}M"
     if ctx_len >= 1000:
         return f"{ctx_len // 1000}K"
-    return str(ctx_len)
+    return str(ctx_len) if ctx_len > 0 else "—"
+
+
+def _format_price_per_m(raw_price: Any) -> str:
+    """OpenRouter 토큰당 단가 문자열을 1M(백만) 토큰당 달러 표기로 변환합니다."""
+    try:
+        per_token = float(raw_price)
+    except (TypeError, ValueError):
+        return "—"
+    if per_token < 0:
+        return "—"
+    per_m = per_token * 1_000_000
+    if per_m == 0:
+        return "$0"
+    if per_m < 1:
+        return f"${per_m:.2f}"
+    if per_m < 10:
+        return f"${per_m:.2f}"
+    return f"${per_m:.1f}"
+
+
+def _clean_openrouter_name(raw_name: str, provider: str) -> str:
+    """OpenRouter 모델명 앞의 'Google: ' 같은 중복 제공사 접두사를 제거합니다."""
+    cleaned = (raw_name or "").strip()
+    prefix = f"{provider}:"
+    if cleaned.lower().startswith(prefix.lower()):
+        cleaned = cleaned[len(prefix) :].strip()
+    return cleaned
 
 
 def fetch_major_bigtech_models(session: Optional[requests.Session] = None) -> List[Dict[str, Any]]:
-    """OpenRouter 공개 API로 주요 빅테크 최신 플래그십 모델의 컨텍스트·링크를 확인하고 종합/코딩/추론 비교 목록을 반환합니다."""
+    """OpenRouter 공개 API에서 5대 빅테크별로 created 타임스탬프가 가장 최신인 플래그십 모델을 실시간 선별합니다."""
     sess = session or _build_session()
-    live_models: Dict[str, Dict[str, Any]] = {}
     try:
         resp = sess.get(OPENROUTER_MODELS_URL, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
-        for entry in resp.json().get("data", []):
-            mid = (entry.get("id") or "").lower()
-            if mid:
-                live_models[mid] = entry
+        all_models = resp.json().get("data", [])
     except Exception as exc:
-        logger.warning("OpenRouter public API fetch failed (using curated benchmark snapshot): %s", exc)
+        logger.warning("OpenRouter public API fetch failed: %s", exc)
+        return []
 
-    results: List[Dict[str, Any]] = []
-    for spec in MAJOR_FLAGSHIP_SPECS:
-        matched = None
-        for prefix in spec["openrouter_prefixes"]:
-            for mid, mdata in live_models.items():
-                if mid.startswith(prefix):
-                    matched = mdata
-                    break
-            if matched:
-                break
+    if not isinstance(all_models, list):
+        return []
 
-        ctx = spec["context_window"]
-        url = spec["url"]
-        if matched:
-            raw_ctx = int(matched.get("context_length") or 0)
-            if raw_ctx > 0:
-                ctx = _format_context_window(raw_ctx)
-            url = f"https://openrouter.ai/{matched.get('id')}"
+    selected: List[Dict[str, Any]] = []
+    for prefix, provider_label in MAJOR_BIGTECH_PROVIDERS:
+        lab_models = [
+            m
+            for m in all_models
+            if str(m.get("id") or "").lower().startswith(prefix)
+            and int(m.get("created") or 0) > 0
+        ]
+        if not lab_models:
+            continue
 
-        results.append(
+        # 경량·특수 변형을 제외한 주력 플래그십 후보를 우선하고, 없으면 전체에서 최신 모델을 고릅니다.
+        flagships = [
+            m
+            for m in lab_models
+            if not NON_FLAGSHIP_RE.search(str(m.get("id") or ""))
+            and float((m.get("pricing") or {}).get("completion") or 0) >= 0
+        ]
+        pool = flagships or lab_models
+
+        # created(최신 출시순) 우선, 동일 출시일이면 컨텍스트/플래그십 단가 순으로 정렬
+        def _flagship_sort_key(m: Dict[str, Any]) -> tuple:
+            created = int(m.get("created") or 0)
+            try:
+                out_p = float((m.get("pricing") or {}).get("completion") or 0)
+            except (TypeError, ValueError):
+                out_p = 0.0
+            ctx = int(m.get("context_length") or 0)
+            return (created, out_p, ctx)
+
+        best = max(pool, key=_flagship_sort_key)
+        model_id = str(best.get("id") or "")
+        created_ts = int(best.get("created") or 0)
+        released_at = datetime.fromtimestamp(created_ts, tz=timezone.utc).strftime("%Y-%m-%d") if created_ts else None
+        pricing = best.get("pricing") or {}
+
+        selected.append(
             {
-                "name": spec["name"],
-                "provider": spec["provider"],
-                "overall": spec["overall"],
-                "coding": spec["coding"],
-                "reasoning": spec["reasoning"],
-                "context_window": ctx,
-                "url": url,
+                "name": _clean_openrouter_name(str(best.get("name") or model_id), provider_label),
+                "provider": provider_label,
+                "context_window": _format_context_window(int(best.get("context_length") or 0)),
+                "input_price": _format_price_per_m(pricing.get("prompt")),
+                "output_price": _format_price_per_m(pricing.get("completion")),
+                "released_at": released_at,
+                "created_ts": created_ts,
+                "url": f"https://openrouter.ai/{model_id}",
             }
         )
 
-    results.sort(key=lambda x: x["overall"], reverse=True)
-    return results[:5]
+    # 가장 최근 출시된 플래그십 모델이 1위에 오도록 정렬합니다.
+    selected.sort(key=lambda x: x.get("created_ts", 0), reverse=True)
+    return selected[:5]
 
 
 def _infer_license_label(org: str, tags: List[str]) -> str:
@@ -691,7 +699,7 @@ def _infer_license_label(org: str, tags: List[str]) -> str:
 
 
 def _estimate_params_vram(model_name: str) -> str:
-    """모델명에서 파라미터 규모(예: 32B)를 읽어 BF16 기준 예상 VRAM 배지를 계산합니다."""
+    """모델명에서 파라미터 규모(예: 32B, 35B-A3B)를 읽어 예상 VRAM 배지를 계산합니다."""
     match = PARAM_SIZE_RE.search(model_name)
     if not match:
         if "deepseek-r1" in model_name.lower() or "deepseek-v3" in model_name.lower():
@@ -721,7 +729,7 @@ def fetch_onprem_open_llms(
     session: Optional[requests.Session] = None,
     limit: int = 120,
 ) -> List[Dict[str, Any]]:
-    """HuggingFace 공개 API에서 공식 오가니제이션의 폐쇄망(vLLM) 반입 가능 오픈LLM TOP 5만 엄선합니다."""
+    """HuggingFace 공개 API에서 공식 조직의 최신 트렌딩(trendingScore) 폐쇄망 오픈LLM TOP 5를 실시간 수집합니다."""
     sess = session or _build_session()
     collected: List[Dict[str, Any]] = []
     seen_ids: set[str] = set()
@@ -729,7 +737,7 @@ def fetch_onprem_open_llms(
     queries = [{"pipeline_tag": "text-generation", "sort": "trendingScore", "direction": "-1", "limit": limit}]
     for org in OFFICIAL_OPEN_LLM_ORGS:
         queries.append(
-            {"author": org, "pipeline_tag": "text-generation", "sort": "likes", "direction": "-1", "limit": 8}
+            {"author": org, "pipeline_tag": "text-generation", "sort": "trendingScore", "direction": "-1", "limit": 10}
         )
 
     for params in queries:
@@ -753,6 +761,7 @@ def fetch_onprem_open_llms(
                 continue
             org, name = model_id.split("/", 1)
             likes = int(m.get("likes") or 0)
+            trending = float(m.get("trendingScore") or 0.0)
             seen_ids.add(model_id)
             collected.append(
                 {
@@ -762,13 +771,29 @@ def fetch_onprem_open_llms(
                     "license": _infer_license_label(org, tags),
                     "params_vram": _estimate_params_vram(name),
                     "vllm_supported": True,
+                    "trending_score": round(trending, 1),
                     "likes": likes,
                     "url": f"https://huggingface.co/{model_id}",
                 }
             )
 
-    collected.sort(key=lambda x: x["likes"], reverse=True)
-    return collected[:5]
+    # 실시간 트렌딩 점수(trendingScore) 우선 정렬 후, 특정 조직 독점을 막기 위해 조직당 1개씩 먼저 선정합니다.
+    collected.sort(key=lambda x: (x["trending_score"], x["likes"]), reverse=True)
+    diversified: List[Dict[str, Any]] = []
+    seen_orgs: set[str] = set()
+    for item in collected:
+        if len(diversified) >= 5:
+            break
+        org_key = item["org"].lower()
+        if org_key not in seen_orgs:
+            diversified.append(item)
+            seen_orgs.add(org_key)
+    for item in collected:
+        if len(diversified) >= 5:
+            break
+        if item not in diversified:
+            diversified.append(item)
+    return diversified[:5]
 
 
 def collect_all(offline: bool = False) -> List[RawItem]:

@@ -188,7 +188,7 @@ def update_radar(
             for rank, item in enumerate(github_items[:5], start=1)
         ]
 
-    # 2) 메이저 빅테크 플래그십 모델 비교 목록 갱신
+    # 2) 메이저 빅테크 최신 플래그십 모델 비교 목록 갱신 (OpenRouter 실데이터)
     if major_models:
         prev_major = {m.name.lower(): m.rank for m in existing.major_models}
         existing.major_models = [
@@ -196,17 +196,17 @@ def update_radar(
                 rank=rank,
                 name=m["name"],
                 provider=m["provider"],
-                overall=float(m["overall"]),
-                coding=float(m["coding"]),
-                reasoning=float(m["reasoning"]),
-                context_window=m.get("context_window"),
+                context_window=m["context_window"],
+                input_price=m["input_price"],
+                output_price=m["output_price"],
+                released_at=m.get("released_at"),
                 delta=_compute_delta(m["name"], rank, prev_major),  # type: ignore[arg-type]
                 url=m.get("url"),
             )
             for rank, m in enumerate(major_models[:5], start=1)
         ]
 
-    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 5 갱신
+    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 5 갱신 (HuggingFace 공식 조직 실시간)
     if onprem_models:
         prev_onprem = {m.name.lower(): m.rank for m in existing.onprem_models}
         existing.onprem_models = [
@@ -217,6 +217,7 @@ def update_radar(
                 license=m["license"],
                 params_vram=m["params_vram"],
                 vllm_supported=bool(m.get("vllm_supported", True)),
+                trending_score=float(m.get("trending_score") or 0.0),
                 likes=int(m.get("likes") or 0),
                 delta=_compute_delta(m["name"], rank, prev_onprem),  # type: ignore[arg-type]
                 url=m.get("url"),

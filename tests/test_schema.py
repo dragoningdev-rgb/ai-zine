@@ -147,13 +147,39 @@ def test_update_radar_computes_real_deltas(tmp_path: Path) -> None:
         RawItem(title=f"org/repo-{i}", url=f"https://github.com/org/repo-{i}", source="GitHub Trending", kind="tool", summary=f"AI tool {i}", score=1000 - i * 10, extra={"repo_name": f"org/repo-{i}", "stars": 1000 - i * 10, "language": "Python"})
         for i in range(1, 6)
     ]
-    major_w1 = [{"name": "ModelA", "provider": "Google", "overall": 91.0, "coding": 90.0, "reasoning": 92.0, "context_window": "1M"}]
-    onprem_w1 = [{"name": "Qwen-32B", "org": "Qwen", "license": "Apache 2.0", "params_vram": "32B · VRAM ~64GB", "vllm_supported": True, "likes": 4000}]
+    major_w1 = [
+        {
+            "name": "ModelA",
+            "provider": "Google",
+            "context_window": "1M",
+            "input_price": "$1.25",
+            "output_price": "$10.0",
+            "released_at": "2026-10-01",
+        }
+    ]
+    onprem_w1 = [
+        {
+            "name": "Qwen-32B",
+            "org": "Qwen",
+            "license": "Apache 2.0",
+            "params_vram": "32B · VRAM ~64GB",
+            "vllm_supported": True,
+            "trending_score": 420.0,
+            "likes": 4000,
+        }
+    ]
     update_radar(gh_items, major_models=major_w1, onprem_models=onprem_w1, date_str="2026-11-23", data_dir=tmp_path)
 
     major_w2 = [
-        {"name": "ModelB", "provider": "Anthropic", "overall": 92.0, "coding": 93.0, "reasoning": 91.0, "context_window": "200K"},
-        {"name": "ModelA", "provider": "Google", "overall": 91.0, "coding": 90.0, "reasoning": 92.0, "context_window": "1M"},
+        {
+            "name": "ModelB",
+            "provider": "Anthropic",
+            "context_window": "200K",
+            "input_price": "$3.00",
+            "output_price": "$15.0",
+            "released_at": "2026-11-10",
+        },
+        major_w1[0],
     ]
     radar_path = update_radar(gh_items, major_models=major_w2, onprem_models=onprem_w1, date_str="2026-11-30", data_dir=tmp_path)
     assert radar_path is not None

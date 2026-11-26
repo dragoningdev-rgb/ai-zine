@@ -47,115 +47,120 @@
   "major_models": [
     {
       "rank": 1,
-      "name": "Gemini 2.5 Pro / Flash",
+      "name": "Gemini 4 Neon",
       "provider": "Google",
-      "overall": 91.4,
-      "coding": 90.8,
-      "reasoning": 93.2,
-      "context_window": "1M",
-      "delta": 0,
-      "url": "https://openrouter.ai/google/gemini-2.5-pro"
+      "context_window": "1.0M",
+      "input_price": "$3.00",
+      "output_price": "$15.0",
+      "released_at": "2026-11-18",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/google/gemini-4-neon"
     },
     {
       "rank": 2,
-      "name": "Claude 3.7 Sonnet",
-      "provider": "Anthropic",
-      "overall": 90.8,
-      "coding": 93.4,
-      "reasoning": 89.7,
-      "context_window": "200K",
-      "delta": 0,
-      "url": "https://openrouter.ai/anthropic/claude-3.7-sonnet"
+      "name": "GPT-6.2 Astra Pro",
+      "provider": "OpenAI",
+      "context_window": "1.1M",
+      "input_price": "$8.00",
+      "output_price": "$40.0",
+      "released_at": "2026-11-17",
+      "delta": -1,
+      "url": "https://openrouter.ai/openai/gpt-6.2-astra-pro"
     },
     {
       "rank": 3,
-      "name": "GPT-4o / o1",
-      "provider": "OpenAI",
-      "overall": 89.9,
-      "coding": 90.2,
-      "reasoning": 91.8,
-      "context_window": "128K",
-      "delta": 0,
-      "url": "https://openrouter.ai/openai/gpt-4o-2024-11-20"
+      "name": "Claude Fable 5.2",
+      "provider": "Anthropic",
+      "context_window": "1M",
+      "input_price": "$8.00",
+      "output_price": "$40.0",
+      "released_at": "2026-11-09",
+      "delta": -1,
+      "url": "https://openrouter.ai/anthropic/claude-fable-5.2"
     },
     {
       "rank": 4,
-      "name": "DeepSeek-V3 / R1",
+      "name": "DeepSeek V4.1 Flash 1017",
       "provider": "DeepSeek",
-      "overall": 88.7,
-      "coding": 88.4,
-      "reasoning": 90.5,
-      "context_window": "163K",
-      "delta": 0,
-      "url": "https://openrouter.ai/deepseek/deepseek-r1-0528"
+      "context_window": "1.0M",
+      "input_price": "$0.15",
+      "output_price": "$0.60",
+      "released_at": "2026-10-17",
+      "delta": -1,
+      "url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017"
     },
     {
       "rank": 5,
-      "name": "Grok 3",
+      "name": "SpaceXSI: Grok 4.7",
       "provider": "xAI",
-      "overall": 88.1,
-      "coding": 86.9,
-      "reasoning": 89.4,
-      "context_window": "131K",
-      "delta": 0,
-      "url": "https://openrouter.ai/x-ai/grok-3"
+      "context_window": "500K",
+      "input_price": "$2.00",
+      "output_price": "$6.00",
+      "released_at": "2026-09-21",
+      "delta": -1,
+      "url": "https://openrouter.ai/x-ai/grok-4.7"
     }
   ],
   "onprem_models": [
     {
       "rank": 1,
-      "name": "DeepSeek-R1",
-      "org": "deepseek-ai",
+      "name": "Aion-1.0-Instruct-2.3B",
+      "org": "microsoft",
       "license": "MIT",
-      "params_vram": "671B MoE · FP8 ~670GB",
+      "params_vram": "2.3B · VRAM ~5GB",
       "vllm_supported": true,
-      "likes": 14487,
+      "trending_score": 56.0,
+      "likes": 352,
       "delta": 0,
-      "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1"
+      "url": "https://huggingface.co/microsoft/Aion-1.0-Instruct-2.3B"
     },
     {
       "rank": 2,
-      "name": "Llama-3.1-8B-Instruct",
-      "org": "meta-llama",
-      "license": "Llama 3.1",
-      "params_vram": "8B · VRAM ~16GB",
-      "vllm_supported": true,
-      "likes": 9117,
-      "delta": 0,
-      "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
-    },
-    {
-      "rank": 3,
-      "name": "Meta-Llama-3-8B",
-      "org": "meta-llama",
-      "license": "Llama3",
-      "params_vram": "8B · VRAM ~16GB",
-      "vllm_supported": true,
-      "likes": 6817,
-      "delta": 0,
-      "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B"
-    },
-    {
-      "rank": 4,
       "name": "Meta-Llama-3-8B-Instruct",
       "org": "meta-llama",
       "license": "Llama3",
       "params_vram": "8B · VRAM ~16GB",
       "vllm_supported": true,
+      "trending_score": 48.0,
       "likes": 6686,
       "delta": 0,
       "url": "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct"
     },
     {
-      "rank": 5,
+      "rank": 3,
       "name": "DeepSeek-V4-Pro",
       "org": "deepseek-ai",
       "license": "MIT",
       "params_vram": "오픈웨이트 · vLLM 권장",
       "vllm_supported": true,
+      "trending_score": 17.0,
       "likes": 5742,
       "delta": 0,
       "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro"
+    },
+    {
+      "rank": 4,
+      "name": "gemma-3-1b-it",
+      "org": "google",
+      "license": "Gemma",
+      "params_vram": "1B · VRAM ~4GB",
+      "vllm_supported": true,
+      "trending_score": 16.0,
+      "likes": 1357,
+      "delta": "NEW",
+      "url": "https://huggingface.co/google/gemma-3-1b-it"
+    },
+    {
+      "rank": 5,
+      "name": "NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16",
+      "org": "nvidia",
+      "license": "OTHER",
+      "params_vram": "4B · VRAM ~8GB",
+      "vllm_supported": true,
+      "trending_score": 13.0,
+      "likes": 283,
+      "delta": "NEW",
+      "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16"
     }
   ]
 }
