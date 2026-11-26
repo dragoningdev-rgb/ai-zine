@@ -118,11 +118,19 @@ class PicksArchive(BaseModel):
     items: List[PickArchiveItem] = Field(default_factory=list)
 
 
+# 판도 탭 GitHub 급상승 저장소의 아코디언 상세 요약 구조 (선택 필드 — 하위 호환 보장)
+class RepoDetailSummary(BaseModel):
+    what: str = Field(..., min_length=1)
+    how: str = Field(..., min_length=1)
+    use_case: str = Field(..., min_length=1)
+
+
 # 판도 탭의 GitHub 급상승 저장소 1건 구조
 class GithubTrendingRepo(BaseModel):
     rank: int = Field(..., ge=1, le=10)
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
+    detail_summary: Optional[RepoDetailSummary] = None
     weekly_stars: int = Field(..., ge=0)
     language: Optional[str] = None
     url: str = Field(..., min_length=1)

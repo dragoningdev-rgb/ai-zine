@@ -305,6 +305,54 @@ def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) ->
         raise LLMAPIError("OpenAI", resp.status_code, f"unexpected response structure: {resp.text[:400]}") from exc
 
 
+def summarize_github_repos(
+    repos: List[Dict[str, str]],
+    gemini_api_key: Optional[str] = None,
+    openai_api_key: Optional[str] = None,
+) -> Dict[str, Dict[str, Any]]:
+    """GitHub 급상승 TOP 5의 README/설명을 바탕으로 한국어 1줄 요약과 아코디언 상세 요약(what/how/use_case)을 생성합니다."""
+    g_key = GEMINI_API_KEY if gemini_api_key is None else gemini_api_key
+    o_key = OPENAI_API_KEY if openai_api_key is None else openai_api_key
+    if not repos or (not g_key and not o_key):
+        return {}
+
+    prompt = (
+        "아래 GitHub AI 오픈소스 저장소 목록의 설명과 README 발췌문을 읽고, 각 저장소마다 "
+        "100% 자연스러운 한국어로 1줄 요약(description, 45자 이내)과 상세 요약(detail_summary: "
+        "what=무슨 도구인지 1줄, how=핵심 동작 방식·원리 1줄, use_case=실무 활용처 1줄)을 작성하세요. "
+        '반드시 {"org/repo": {"description": "...", "detail_summary": {"what": "...", "how": "...", "use_case": "..."}}} '
+        "형식의 JSON 객체만 출력하세요.\n"
+        + json.dumps(repos, ensure_ascii=False)
+    )
+    try:
+        raw = (
+            _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
+            if g_key
+            else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
+        )
+        parsed = _extract_json_payload(raw)
+        if not isinstance(parsed, dict):
+            return {}
+        out: Dict[str, Dict[str, Any]] = {}
+        for k, v in parsed.items():
+            if not isinstance(v, dict):
+                continue
+            desc = truncate_text(str(v.get("description") or ""), 90)
+            ds = v.get("detail_summary")
+            detail_clean = None
+            if isinstance(ds, dict) and ds.get("what") and ds.get("how") and ds.get("use_case"):
+                detail_clean = {
+                    "what": truncate_text(str(ds["what"]), 140),
+                    "how": truncate_text(str(ds["how"]), 140),
+                    "use_case": truncate_text(str(ds["use_case"]), 140),
+                }
+            out[str(k)] = {"description": desc, "detail_summary": detail_clean}
+        return out
+    except Exception as exc:
+        logger.warning("GitHub repo detail summarization failed (keeping originals): %s", exc)
+    return {}
+
+
 def translate_github_descriptions(
     repos: List[Dict[str, str]],
     gemini_api_key: Optional[str] = None,

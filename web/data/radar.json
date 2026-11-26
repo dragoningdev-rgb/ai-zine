@@ -6,40 +6,65 @@
     {
       "rank": 1,
       "name": "morluto/rea",
-      "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
-      "weekly_stars": 478679,
+      "description": "앱 동작부터 바이너리까지, AI 에이전트로 뭐든 리버스 엔지니어링",
+      "detail_summary": {
+        "what": "앱 동작 추적부터 네이티브 바이너리 디컴파일까지 AI 에이전트로 자동 분석하는 리버스 엔지니어링 도구입니다.",
+        "how": "디버거·디컴파일러 출력과 런타임 로그를 에이전트 루프에 연결해 함수 구조와 취약점을 단계적으로 해석합니다.",
+        "use_case": "레거시 바이너리 보안 점검, 서드파티 SDK 동작 분석, 악성코드 초동 분석 시간을 크게 줄일 수 있습니다."
+      },
+      "weekly_stars": 478657,
       "language": "TypeScript",
       "url": "https://github.com/morluto/rea"
     },
     {
       "rank": 2,
       "name": "openclaw/openclaw",
-      "description": "The AI that really does things. Any OS. Any Platform. The lobster way. 🦞",
-      "weekly_stars": 395240,
+      "description": "어떤 OS든 가리지 않고 진짜 행동하는 랍스터형 자율 AI",
+      "detail_summary": {
+        "what": "macOS·Linux·Windows 환경에서 브라우저·터미널·앱을 직접 제어해 업무를 끝내는 오픈소스 자율 AI 에이전트입니다.",
+        "how": "로컬 도구 커넥터와 멀티스텝 플래너를 결합해 자연어 지시를 실제 OS 명령과 파일 작업으로 실행합니다.",
+        "use_case": "반복적인 문서 취합, 사내 웹 포털 입력, 정기 리포트 생성 같은 데스크톱 업무 자동화에 활용됩니다."
+      },
+      "weekly_stars": 395237,
       "language": "TypeScript",
       "url": "https://github.com/openclaw/openclaw"
     },
     {
       "rank": 3,
       "name": "mattpocock/skills",
-      "description": "Skills for Real Engineers. Straight from my .agents directory.",
-      "weekly_stars": 333019,
+      "description": "실전 엔지니어를 위한 검증된 AI 에이전트 스킬 모음집",
+      "detail_summary": {
+        "what": "코딩 에이전트(.agents 디렉터리)에 바로 꽂아 쓰는 실무 엔지니어용 검증된 스킬 템플릿 모음집입니다.",
+        "how": "TypeScript·테스트·리팩터링 절차를 표준 SKILL.md 규칙으로 모듈화해 에이전트가 일관된 품질로 작업하게 유도합니다.",
+        "use_case": "팀 전체의 AI 코딩 컨벤션을 통일하고 프롬프트 복붙 없이 재사용 가능한 에이전트 워크플로를 구축할 때 유용합니다."
+      },
+      "weekly_stars": 333007,
       "language": "Shell",
       "url": "https://github.com/mattpocock/skills"
     },
     {
       "rank": 4,
       "name": "obra/superpowers",
-      "description": "An agentic skills framework & software development methodology that works.",
-      "weekly_stars": 326765,
+      "description": "실무에 바로 쓰는 AI 에이전트 스킬 프레임워크와 개발 방법론",
+      "detail_summary": {
+        "what": "명세 작성→계획→구현→검증 단계를 강제하는 에이전트 스킬 프레임워크 겸 소프트웨어 개발 방법론입니다.",
+        "how": "TDD와 코드 리뷰 체크리스트를 에이전트 스킬로 내장해 LLM이 추측 코딩 대신 단계별 검증을 거치도록 제어합니다.",
+        "use_case": "AI 코딩 에이전트를 실전 프로덕션 레포에 도입할 때 품질 저하와 회귀 버그를 막는 가드레일로 적합합니다."
+      },
+      "weekly_stars": 326744,
       "language": "Shell",
       "url": "https://github.com/obra/superpowers"
     },
     {
       "rank": 5,
       "name": "affaan-m/ECC",
-      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
-      "weekly_stars": 310806,
+      "description": "코딩 AI 에이전트 성능을 극대화하는 하네스 최적화 시스템",
+      "detail_summary": {
+        "what": "Claude Code·Codex·Cursor 등 코딩 에이전트의 성능·메모리·보안을 최적화하는 하네스(Harness) 프레임워크입니다.",
+        "how": "컨텍스트 압축, 장기 메모리 인덱싱, 위험 명령 차단 훅을 통합해 토큰 비용과 작업 실패율을 낮춥니다.",
+        "use_case": "대규모 모노레포에서 코딩 에이전트의 응답 속도와 정확도를 끌어올리고 보안 정책을 강제할 때 활용합니다."
+      },
+      "weekly_stars": 310796,
       "language": "JavaScript",
       "url": "https://github.com/affaan-m/ECC"
     }
@@ -64,11 +89,33 @@
       "input_price": "$8.00",
       "output_price": "$40.0",
       "released_at": "2026-11-17",
-      "delta": 0,
+      "delta": 1,
       "url": "https://openrouter.ai/openai/gpt-6.2-astra-pro"
     },
     {
       "rank": 3,
+      "name": "GPT-6.2 Astra",
+      "provider": "OpenAI",
+      "context_window": "1.1M",
+      "input_price": "$8.00",
+      "output_price": "$40.0",
+      "released_at": "2026-11-17",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/openai/gpt-6.2-astra"
+    },
+    {
+      "rank": 4,
+      "name": "Gemini 4 Hydrogen",
+      "provider": "Google",
+      "context_window": "1.0M",
+      "input_price": "$1.50",
+      "output_price": "$7.50",
+      "released_at": "2026-11-12",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/google/gemini-4-hydrogen"
+    },
+    {
+      "rank": 5,
       "name": "Claude Fable 5.2",
       "provider": "Anthropic",
       "context_window": "1M",
@@ -79,26 +126,59 @@
       "url": "https://openrouter.ai/anthropic/claude-fable-5.2"
     },
     {
-      "rank": 4,
+      "rank": 6,
       "name": "DeepSeek V4.1 Flash 1017",
       "provider": "DeepSeek",
       "context_window": "1.0M",
       "input_price": "$0.15",
       "output_price": "$0.60",
       "released_at": "2026-10-17",
-      "delta": 0,
+      "delta": 1,
       "url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017"
     },
     {
-      "rank": 5,
+      "rank": 7,
+      "name": "Claude Sonnet 5.5",
+      "provider": "Anthropic",
+      "context_window": "1M",
+      "input_price": "$2.00",
+      "output_price": "$10.0",
+      "released_at": "2026-09-28",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/anthropic/claude-sonnet-5.5"
+    },
+    {
+      "rank": 8,
       "name": "SpaceXSI: Grok 4.7",
       "provider": "xAI",
       "context_window": "500K",
       "input_price": "$2.00",
       "output_price": "$6.00",
       "released_at": "2026-09-21",
-      "delta": 0,
+      "delta": 1,
       "url": "https://openrouter.ai/x-ai/grok-4.7"
+    },
+    {
+      "rank": 9,
+      "name": "DeepSeek V4.1 Flash",
+      "provider": "DeepSeek",
+      "context_window": "1.0M",
+      "input_price": "$0.14",
+      "output_price": "$0.42",
+      "released_at": "2026-09-10",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash"
+    },
+    {
+      "rank": 10,
+      "name": "SpaceXSI: Grok 4.6",
+      "provider": "xAI",
+      "context_window": "500K",
+      "input_price": "$2.00",
+      "output_price": "$6.00",
+      "released_at": "2026-08-12",
+      "delta": "NEW",
+      "url": "https://openrouter.ai/x-ai/grok-4.6"
     }
   ],
   "onprem_models": [
@@ -128,6 +208,18 @@
     },
     {
       "rank": 3,
+      "name": "Qwen3.6-35B-A3B",
+      "org": "Qwen",
+      "license": "Apache 2.0",
+      "params_vram": "35B · VRAM ~70GB",
+      "vllm_supported": true,
+      "trending_score": 22.0,
+      "likes": 3186,
+      "delta": "NEW",
+      "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B"
+    },
+    {
+      "rank": 4,
       "name": "gemma-4-26B-A4B-it",
       "org": "google",
       "license": "Apache 2.0",
@@ -135,11 +227,23 @@
       "vllm_supported": true,
       "trending_score": 21.0,
       "likes": 1814,
-      "delta": 0,
+      "delta": -1,
       "url": "https://huggingface.co/google/gemma-4-26B-A4B-it"
     },
     {
-      "rank": 4,
+      "rank": 5,
+      "name": "DeepSeek-V4.1-Flash",
+      "org": "deepseek-ai",
+      "license": "MIT",
+      "params_vram": "671B MoE · FP8 ~670GB",
+      "vllm_supported": true,
+      "trending_score": 19.5,
+      "likes": 5107,
+      "delta": "NEW",
+      "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash"
+    },
+    {
+      "rank": 6,
       "name": "Mistral-Large-4-1T-A52B",
       "org": "mistralai",
       "license": "OTHER",
@@ -147,11 +251,11 @@
       "vllm_supported": true,
       "trending_score": 15.0,
       "likes": 1684,
-      "delta": 0,
+      "delta": -2,
       "url": "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B"
     },
     {
-      "rank": 5,
+      "rank": 7,
       "name": "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16",
       "org": "nvidia",
       "license": "OTHER",
@@ -159,11 +263,11 @@
       "vllm_supported": true,
       "trending_score": 8.0,
       "likes": 145,
-      "delta": 0,
+      "delta": -2,
       "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16"
     },
     {
-      "rank": 6,
+      "rank": 8,
       "name": "Llama-3.3-70B-Instruct",
       "org": "meta-llama",
       "license": "Llama 3.3",
@@ -171,11 +275,11 @@
       "vllm_supported": true,
       "trending_score": 5.0,
       "likes": 3233,
-      "delta": 0,
+      "delta": -2,
       "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct"
     },
     {
-      "rank": 7,
+      "rank": 9,
       "name": "Fara1.5-27B",
       "org": "microsoft",
       "license": "MIT",
@@ -183,20 +287,20 @@
       "vllm_supported": true,
       "trending_score": 2.0,
       "likes": 301,
-      "delta": 0,
+      "delta": -2,
       "url": "https://huggingface.co/microsoft/Fara1.5-27B"
     },
     {
-      "rank": 8,
-      "name": "K-EXAONE-236B-A23B",
+      "rank": 10,
+      "name": "EXAONE-4.5-33B",
       "org": "LGAI-EXAONE",
       "license": "OTHER",
-      "params_vram": "236B · VRAM ~472GB",
+      "params_vram": "33B · VRAM ~66GB",
       "vllm_supported": true,
-      "trending_score": 0.5,
-      "likes": 580,
-      "delta": 0,
-      "url": "https://huggingface.co/LGAI-EXAONE/K-EXAONE-236B-A23B"
+      "trending_score": 1.0,
+      "likes": 194,
+      "delta": "NEW",
+      "url": "https://huggingface.co/LGAI-EXAONE/EXAONE-4.5-33B"
     }
   ]
 }

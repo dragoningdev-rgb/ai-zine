@@ -54,8 +54,8 @@ def test_radar_json_schema() -> None:
     payload = json.loads(radar_path.read_text(encoding="utf-8"))
     radar = RadarData.model_validate(payload)
     assert len(radar.github_trending_top5) == 5
-    assert len(radar.major_models) == 5
-    assert 5 <= len(radar.onprem_models) <= 8
+    assert 5 <= len(radar.major_models) <= 10
+    assert 5 <= len(radar.onprem_models) <= 10
 
 
 def test_invalid_edition_rejected_by_schema() -> None:

@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pipeline.collect import RawItem
 from pipeline.config import DATA_DIR
-from pipeline.curate import translate_github_descriptions
+from pipeline.curate import summarize_github_repos
 from pipeline.schema import (
     Edition,
     GithubTrendingRepo,
@@ -18,6 +18,7 @@ from pipeline.schema import (
     PickArchiveItem,
     PicksArchive,
     RadarData,
+    RepoDetailSummary,
 )
 from pipeline.utils import read_json, write_json
 
@@ -166,29 +167,37 @@ def update_radar(
             onprem_models=[],
         )
 
-    # 1) GitHub 급상승 TOP 5 갱신 + LLM 한국어 1줄 설명 번역
+    # 1) GitHub 급상승 TOP 5 갱신 + README 기반 한국어 1줄 요약 및 아코디언 상세 요약 생성
     if len(github_items) >= 5:
         raw_repos = [
             {
                 "name": item.extra.get("repo_name") or item.title.split(":")[0].strip(),
                 "description": item.summary or item.title,
+                "readme_snippet": (item.extra.get("readme_snippet") or "")[:2000],
             }
             for item in github_items[:5]
         ]
-        ko_map = translate_github_descriptions(raw_repos)
-        existing.github_trending_top5 = [
-            GithubTrendingRepo(
-                rank=rank,
-                name=raw_repos[rank - 1]["name"],
-                description=ko_map.get(raw_repos[rank - 1]["name"], raw_repos[rank - 1]["description"]),
-                weekly_stars=int(item.extra.get("stars") or item.score),
-                language=item.extra.get("language") or None,
-                url=item.url,
+        ko_map = summarize_github_repos(raw_repos)
+        existing.github_trending_top5 = []
+        for rank, item in enumerate(github_items[:5], start=1):
+            rname = raw_repos[rank - 1]["name"]
+            curated = ko_map.get(rname) or {}
+            desc_ko = curated.get("description") or raw_repos[rank - 1]["description"]
+            detail_raw = curated.get("detail_summary")
+            detail_obj = RepoDetailSummary.model_validate(detail_raw) if detail_raw else None
+            existing.github_trending_top5.append(
+                GithubTrendingRepo(
+                    rank=rank,
+                    name=rname,
+                    description=desc_ko,
+                    detail_summary=detail_obj,
+                    weekly_stars=int(item.extra.get("stars") or item.score),
+                    language=item.extra.get("language") or None,
+                    url=item.url,
+                )
             )
-            for rank, item in enumerate(github_items[:5], start=1)
-        ]
 
-    # 2) 메이저 빅테크 최신 플래그십 모델 비교 목록 갱신 (OpenRouter 실데이터)
+    # 2) 메이저 빅테크 최신 플래그십 모델 비교 목록 갱신 (최대 10개, OpenRouter 실데이터)
     if major_models:
         prev_major = {m.name.lower(): m.rank for m in existing.major_models}
         existing.major_models = [
@@ -203,10 +212,10 @@ def update_radar(
                 delta=_compute_delta(m["name"], rank, prev_major),  # type: ignore[arg-type]
                 url=m.get("url"),
             )
-            for rank, m in enumerate(major_models[:5], start=1)
+            for rank, m in enumerate(major_models[:10], start=1)
         ]
 
-    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 5~8 갱신 (HuggingFace 공식 조직 실시간)
+    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 10 갱신 (HuggingFace 공식 조직 실시간)
     if onprem_models:
         prev_onprem = {m.name.lower(): m.rank for m in existing.onprem_models}
         existing.onprem_models = [
@@ -222,7 +231,7 @@ def update_radar(
                 delta=_compute_delta(m["name"], rank, prev_onprem),  # type: ignore[arg-type]
                 url=m.get("url"),
             )
-            for rank, m in enumerate(onprem_models[:8], start=1)
+            for rank, m in enumerate(onprem_models[:10], start=1)
         ]
 
     existing.updated_at = today

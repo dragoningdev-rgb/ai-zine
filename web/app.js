@@ -36,6 +36,8 @@
     radar: null,
     radarCategory: "major",
     onpremFilter: "ALL",
+    radarExpanded: { major: false, onprem: false },
+    expandedRepos: new Set(),
     scraps: loadJSON(STORAGE_KEYS.SCRAPS, []),
     readCardsByDate: loadJSON(STORAGE_KEYS.READ_CARDS, {}),
     completedDates: loadJSON(STORAGE_KEYS.COMPLETED_DATES, []),
@@ -693,8 +695,10 @@
     const maxCtxK = Math.max(1, ...majorModels.map((m) => parseContextTokens(m.context_window)));
     const maxTrend = Math.max(1, ...onpremModels.map((m) => Number(m.trending_score || m.likes || 1)));
 
-    const renderMajorList = () =>
-      majorModels
+    const renderMajorList = () => {
+      const expanded = Boolean(state.radarExpanded.major);
+      const visible = expanded ? majorModels : majorModels.slice(0, 5);
+      const cardsHTML = visible
         .map((m) => {
           const ctxPct = Math.max(18, Math.round((parseContextTokens(m.context_window) / maxCtxK) * 100));
           const inner = `
@@ -720,6 +724,15 @@
             : `<div class="rank-card">${inner}</div>`;
         })
         .join("");
+
+      const moreBtn =
+        majorModels.length > 5
+          ? `<button type="button" class="radar-more-btn" data-toggle-radar-more="major">${
+              expanded ? "접기 ▴" : `더보기 (6~${majorModels.length}위) ▾`
+            }</button>`
+          : "";
+      return `${cardsHTML}${moreBtn}`;
+    };
 
     const filteredOnPrem = onpremModels.filter((m) => {
       if (state.onpremFilter === "PERMISSIVE") {
@@ -748,7 +761,10 @@
         return `${chipsHTML}<div class="empty-state">선택한 조건에 맞는 폐쇄망 오픈LLM이 없습니다.</div>`;
       }
 
-      const cardsHTML = filteredOnPrem
+      const expanded = Boolean(state.radarExpanded.onprem);
+      const visible = expanded ? filteredOnPrem : filteredOnPrem.slice(0, 5);
+
+      const cardsHTML = visible
         .map((m) => {
           const scoreVal = Number(m.trending_score || m.likes || 0);
           const pct = Math.max(18, Math.round((scoreVal / maxTrend) * 100));
@@ -775,7 +791,68 @@
             : `<div class="rank-card">${inner}</div>`;
         })
         .join("");
-      return `${chipsHTML}${cardsHTML}`;
+
+      const moreBtn =
+        filteredOnPrem.length > 5
+          ? `<button type="button" class="radar-more-btn" data-toggle-radar-more="onprem">${
+              expanded ? "접기 ▴" : `더보기 (6~${filteredOnPrem.length}위) ▾`
+            }</button>`
+          : "";
+      return `${chipsHTML}${cardsHTML}${moreBtn}`;
+    };
+
+    const renderRepoItem = (repo) => {
+      const isOpen = state.expandedRepos.has(repo.name);
+      const ds = repo.detail_summary;
+      const detailHTML = isOpen
+        ? `
+        <div class="repo-detail-panel">
+          ${
+            ds
+              ? `
+            <div class="repo-detail-row">
+              <span class="repo-detail-k">핵심 내용</span>
+              <p class="repo-detail-v">${highlightSummary(ds.what)}</p>
+            </div>
+            <div class="repo-detail-row">
+              <span class="repo-detail-k">동작 방식</span>
+              <p class="repo-detail-v">${highlightSummary(ds.how)}</p>
+            </div>
+            <div class="repo-detail-row">
+              <span class="repo-detail-k">활용 포인트</span>
+              <p class="repo-detail-v">${highlightSummary(ds.use_case)}</p>
+            </div>`
+              : `<p class="repo-detail-v">${escapeHTML(repo.description)}</p>`
+          }
+          <a class="repo-ext-link" href="${escapeHTML(repo.url)}" target="_blank" rel="noopener noreferrer">GitHub 열기 ↗</a>
+        </div>`
+        : "";
+
+      return `
+        <article class="repo-item ${isOpen ? "expanded" : ""}">
+          <div class="repo-item-top">
+            <span class="rank-num ${repo.rank === 1 ? "top1" : ""}">${repo.rank}</span>
+            <div class="repo-info">
+              <a class="repo-name" href="${escapeHTML(repo.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(repo.name)}</a>
+              <p class="repo-desc">${escapeHTML(repo.description)}</p>
+              <div class="repo-meta-row">
+                <div class="repo-meta">
+                  <span class="star-gain">★ +${Number(repo.weekly_stars || 0).toLocaleString()}</span>
+                  ${repo.language ? `<span>· ${escapeHTML(repo.language)}</span>` : ""}
+                </div>
+                <button
+                  type="button"
+                  class="repo-toggle-btn ${isOpen ? "open" : ""}"
+                  data-toggle-repo="${escapeHTML(repo.name)}"
+                  aria-expanded="${isOpen}"
+                >
+                  ${isOpen ? "접기 ▴" : "요약 보기 ▾"}
+                </button>
+              </div>
+            </div>
+          </div>
+          ${detailHTML}
+        </article>`;
     };
 
     container.innerHTML = `
@@ -785,28 +862,13 @@
           <span class="card-num">주간 ★ 증가</span>
         </h2>
         <div class="repo-list">
-          ${repos
-            .map(
-              (repo) => `
-            <a class="repo-item" href="${escapeHTML(repo.url)}" target="_blank" rel="noopener noreferrer">
-              <span class="rank-num ${repo.rank === 1 ? "top1" : ""}">${repo.rank}</span>
-              <div class="repo-info">
-                <span class="repo-name">${escapeHTML(repo.name)}</span>
-                <p class="repo-desc">${escapeHTML(repo.description)}</p>
-                <div class="repo-meta">
-                  <span class="star-gain">★ +${Number(repo.weekly_stars || 0).toLocaleString()}</span>
-                  ${repo.language ? `<span>· ${escapeHTML(repo.language)}</span>` : ""}
-                </div>
-              </div>
-            </a>`
-            )
-            .join("")}
+          ${repos.map(renderRepoItem).join("")}
         </div>
       </section>
 
       <section class="card">
         <h2 class="radar-block-title">
-          <span>LLM 판도 비교 TOP 5</span>
+          <span>LLM 판도 비교 TOP 10</span>
           <span class="card-num">전주 대비</span>
         </h2>
         <div class="seg-tabs seg-tabs-2" role="tablist" aria-label="모델 비교 부문">
@@ -1070,10 +1132,35 @@
         return;
       }
 
+      // GitHub 급상승 저장소 아코디언 상세 요약 토글
+      const repoToggleBtn = e.target.closest("[data-toggle-repo]");
+      if (repoToggleBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const repoName = repoToggleBtn.getAttribute("data-toggle-repo");
+        if (state.expandedRepos.has(repoName)) {
+          state.expandedRepos.delete(repoName);
+        } else {
+          state.expandedRepos.add(repoName);
+        }
+        renderRadar();
+        return;
+      }
+
+      // LLM 판도 비교 TOP 10 더보기 / 접기 토글
+      const radarMoreBtn = e.target.closest("[data-toggle-radar-more]");
+      if (radarMoreBtn) {
+        const key = radarMoreBtn.getAttribute("data-toggle-radar-more");
+        state.radarExpanded[key] = !state.radarExpanded[key];
+        renderRadar();
+        return;
+      }
+
       // 폐쇄망 오픈LLM 퀵 필터 칩 전환
       const onpremFilterBtn = e.target.closest("[data-onprem-filter]");
       if (onpremFilterBtn) {
         state.onpremFilter = onpremFilterBtn.getAttribute("data-onprem-filter");
+        state.radarExpanded.onprem = false;
         renderRadar();
       }
     });

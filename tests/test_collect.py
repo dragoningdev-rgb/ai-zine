@@ -9,6 +9,7 @@ from pipeline.collect import (
     RawItem,
     deduplicate_items,
     extract_meta_description,
+    fetch_github_readme_snippet,
     fetch_hn_top_comments,
     fetch_major_bigtech_models,
     fetch_onprem_open_llms,
@@ -256,3 +257,15 @@ def test_fetch_major_bigtech_models_parses_openrouter() -> None:
     assert majors[0]["input_price"] == "$1.25"
     assert majors[0]["output_price"] == "$10.0"
     assert majors[1]["name"] == "Claude 4.5 Sonnet"
+
+
+def test_fetch_github_readme_snippet_truncates_to_limit() -> None:
+    mock_resp = MagicMock()
+    mock_resp.ok = True
+    mock_resp.text = "<h1>Demo Repo</h1> " + ("AI agent architecture details. " * 200)
+    mock_session = MagicMock()
+    mock_session.get.return_value = mock_resp
+
+    snippet = fetch_github_readme_snippet("org/demo-repo", session=mock_session, max_chars=200)
+    assert len(snippet) <= 200
+    assert snippet.startswith("Demo Repo")

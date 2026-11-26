@@ -461,8 +461,31 @@ def fetch_hacker_news(session: Optional[requests.Session] = None) -> List[RawIte
     return items
 
 
+def fetch_github_readme_snippet(
+    repo_name: str,
+    session: Optional[requests.Session] = None,
+    max_chars: int = 2000,
+) -> str:
+    """GitHub 저장소의 README.md 앞부분(약 2,000자)을 가져와 상세 요약 재료로 활용합니다."""
+    if not repo_name or "/" not in repo_name:
+        return ""
+    sess = session or _build_session()
+    try:
+        resp = sess.get(
+            f"https://api.github.com/repos/{repo_name}/readme",
+            headers={"Accept": "application/vnd.github.raw+json"},
+            timeout=ARTICLE_META_TIMEOUT,
+        )
+        if resp.ok and resp.text:
+            cleaned = strip_html(resp.text)
+            return cleaned[:max_chars]
+    except Exception:
+        pass
+    return ""
+
+
 def fetch_github_trending_ai(session: Optional[requests.Session] = None, days: int = 7) -> List[RawItem]:
-    """최근 1주일간 스타가 빠르게 늘어난 AI/LLM 오픈소스 저장소를 조회합니다."""
+    """최근 1주일간 스타가 빠르게 늘어난 AI/LLM 오픈소스 저장소와 상위 5개 README 앞부분을 조회합니다."""
     sess = session or _build_session()
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
     params = {
@@ -503,6 +526,18 @@ def fetch_github_trending_ai(session: Optional[requests.Session] = None, days: i
                 },
             )
         )
+
+    # 상위 5개 저장소의 README 앞부분(2,000자)을 병렬로 보강합니다(실패 시 description 폴백).
+    def _attach_readme(item: RawItem) -> None:
+        rname = item.extra.get("repo_name") or ""
+        snippet = fetch_github_readme_snippet(rname, session=sess)
+        if snippet:
+            item.extra["readme_snippet"] = snippet
+
+    if items:
+        with ThreadPoolExecutor(max_workers=min(5, MAX_WORKERS)) as pool:
+            list(pool.map(_attach_readme, items[:5]))
+
     return items
 
 
@@ -559,9 +594,9 @@ MAJOR_BIGTECH_PROVIDERS = (
     ("x-ai/", "xAI"),
 )
 
-# OpenRouter 모델 중 경량/특수/비플래그십(음악·이미지·임베딩 등) 변형을 제외하고 주력 LLM 플래그십을 고르기 위한 필터
+# OpenRouter 모델 중 경량/특수/배치/비플래그십(음악·이미지·임베딩 등) 변형을 제외하고 주력 LLM 플래그십을 고르기 위한 필터
 NON_FLAGSHIP_RE = re.compile(
-    r"(:free|:beta|:extended|embed|whisper|tts|audio|image|vision|\bnano\b|\bmini\b|\blite\b|haiku|gemma|lyria|imagen|veo|moderation|search|online|realtime|guard|distill|r1-zero|prover|chat-v2|coder-v2|gpt-3\.5|flash-lite|flash-8b|\blive\b|preview-tts|safeguard|codex-mini)",
+    r"(:free|:beta|:extended|:batch|\bbatch\b|embed|whisper|tts|audio|image|vision|\bnano\b|\bmini\b|\blite\b|haiku|gemma|lyria|imagen|veo|moderation|search|online|realtime|guard|distill|r1-zero|prover|chat-v2|coder-v2|gpt-3\.5|flash-lite|flash-8b|\blive\b|preview-tts|safeguard|codex-mini)",
     flags=re.IGNORECASE,
 )
 
@@ -602,8 +637,11 @@ def _clean_openrouter_name(raw_name: str, provider: str) -> str:
     return cleaned
 
 
-def fetch_major_bigtech_models(session: Optional[requests.Session] = None) -> List[Dict[str, Any]]:
-    """OpenRouter 공개 API에서 5대 빅테크별로 created 타임스탬프가 가장 최신인 플래그십 모델을 실시간 선별합니다."""
+def fetch_major_bigtech_models(
+    session: Optional[requests.Session] = None,
+    max_items: int = 10,
+) -> List[Dict[str, Any]]:
+    """OpenRouter 공개 API에서 5대 빅테크별로 최신 플래그십 모델 상위 2종씩(최대 10개) 실시간 선별합니다."""
     sess = session or _build_session()
     try:
         resp = sess.get(OPENROUTER_MODELS_URL, timeout=REQUEST_TIMEOUT)
@@ -627,7 +665,6 @@ def fetch_major_bigtech_models(session: Optional[requests.Session] = None) -> Li
         if not lab_models:
             continue
 
-        # 경량·특수 변형을 제외한 주력 플래그십 후보를 우선하고, 없으면 전체에서 최신 모델을 고릅니다.
         flagships = [
             m
             for m in lab_models
@@ -636,7 +673,6 @@ def fetch_major_bigtech_models(session: Optional[requests.Session] = None) -> Li
         ]
         pool = flagships or lab_models
 
-        # created(최신 출시순) 우선, 동일 출시일이면 컨텍스트/플래그십 단가 순으로 정렬
         def _flagship_sort_key(m: Dict[str, Any]) -> tuple:
             created = int(m.get("created") or 0)
             try:
@@ -646,28 +682,40 @@ def fetch_major_bigtech_models(session: Optional[requests.Session] = None) -> Li
             ctx = int(m.get("context_length") or 0)
             return (created, out_p, ctx)
 
-        best = max(pool, key=_flagship_sort_key)
-        model_id = str(best.get("id") or "")
-        created_ts = int(best.get("created") or 0)
-        released_at = datetime.fromtimestamp(created_ts, tz=timezone.utc).strftime("%Y-%m-%d") if created_ts else None
-        pricing = best.get("pricing") or {}
+        ranked_pool = sorted(pool, key=_flagship_sort_key, reverse=True)
+        picked_names: set[str] = set()
+        per_lab_count = 0
 
-        selected.append(
-            {
-                "name": _clean_openrouter_name(str(best.get("name") or model_id), provider_label),
-                "provider": provider_label,
-                "context_window": _format_context_window(int(best.get("context_length") or 0)),
-                "input_price": _format_price_per_m(pricing.get("prompt")),
-                "output_price": _format_price_per_m(pricing.get("completion")),
-                "released_at": released_at,
-                "created_ts": created_ts,
-                "url": f"https://openrouter.ai/{model_id}",
-            }
-        )
+        for best in ranked_pool:
+            if per_lab_count >= 2:
+                break
+            model_id = str(best.get("id") or "")
+            clean_name = _clean_openrouter_name(str(best.get("name") or model_id), provider_label)
+            norm_key = clean_name.lower()
+            if norm_key in picked_names:
+                continue
+            picked_names.add(norm_key)
+            per_lab_count += 1
 
-    # 가장 최근 출시된 플래그십 모델이 1위에 오도록 정렬합니다.
+            created_ts = int(best.get("created") or 0)
+            released_at = datetime.fromtimestamp(created_ts, tz=timezone.utc).strftime("%Y-%m-%d") if created_ts else None
+            pricing = best.get("pricing") or {}
+
+            selected.append(
+                {
+                    "name": clean_name,
+                    "provider": provider_label,
+                    "context_window": _format_context_window(int(best.get("context_length") or 0)),
+                    "input_price": _format_price_per_m(pricing.get("prompt")),
+                    "output_price": _format_price_per_m(pricing.get("completion")),
+                    "released_at": released_at,
+                    "created_ts": created_ts,
+                    "url": f"https://openrouter.ai/{model_id}",
+                }
+            )
+
     selected.sort(key=lambda x: x.get("created_ts", 0), reverse=True)
-    return selected[:5]
+    return selected[:max_items]
 
 
 def _infer_license_label(org: str, tags: List[str]) -> str:
@@ -754,9 +802,9 @@ def is_official_onprem_model(model_id: str, tags: Optional[List[str]] = None) ->
 def fetch_onprem_open_llms(
     session: Optional[requests.Session] = None,
     limit: int = 100,
-    max_items: int = 8,
+    max_items: int = 10,
 ) -> List[Dict[str, Any]]:
-    """HuggingFace API(text-generation + image-text-to-text)에서 공식 조직의 실무급(14B+ 우선) 폐쇄망 오픈LLM TOP 8을 수집합니다."""
+    """HuggingFace API(text-generation + image-text-to-text)에서 공식 조직의 실무급(14B+ 우선) 폐쇄망 오픈LLM TOP 10을 수집합니다."""
     sess = session or _build_session()
     collected: List[Dict[str, Any]] = []
     seen_ids: set[str] = set()
