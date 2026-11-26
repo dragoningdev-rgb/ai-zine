@@ -803,26 +803,46 @@
 
     const renderRepoItem = (repo) => {
       const isOpen = state.expandedRepos.has(repo.name);
-      const ds = repo.detail_summary;
+      const ds = repo.detail_summary || {};
+      const whatHow = (ds.what_how || ds.what || "").trim();
+      const reactions = (ds.reactions || ds.how || "").trim();
+      const useCase = (ds.use_case || "").trim();
+      const descTrim = String(repo.description || "").trim();
+      const hasValidDetail = Boolean(
+        (whatHow && whatHow !== descTrim) || reactions || useCase
+      );
+
       const detailHTML = isOpen
         ? `
         <div class="repo-detail-panel">
           ${
-            ds
+            hasValidDetail
               ? `
-            <div class="repo-detail-row">
-              <span class="repo-detail-k">핵심 내용</span>
-              <p class="repo-detail-v">${highlightSummary(ds.what)}</p>
-            </div>
-            <div class="repo-detail-row">
-              <span class="repo-detail-k">동작 방식</span>
-              <p class="repo-detail-v">${highlightSummary(ds.how)}</p>
-            </div>
-            <div class="repo-detail-row">
-              <span class="repo-detail-k">활용 포인트</span>
-              <p class="repo-detail-v">${highlightSummary(ds.use_case)}</p>
-            </div>`
-              : `<p class="repo-detail-v">${escapeHTML(repo.description)}</p>`
+            ${
+              whatHow
+                ? `<div class="repo-detail-row">
+                    <span class="repo-detail-k">핵심 원리</span>
+                    <p class="repo-detail-v">${highlightSummary(whatHow)}</p>
+                  </div>`
+                : ""
+            }
+            ${
+              reactions
+                ? `<div class="repo-detail-row">
+                    <span class="repo-detail-k reaction">개발자 반응</span>
+                    <p class="repo-detail-v">${highlightSummary(reactions)}</p>
+                  </div>`
+                : ""
+            }
+            ${
+              useCase
+                ? `<div class="repo-detail-row">
+                    <span class="repo-detail-k usecase">실무 활용</span>
+                    <p class="repo-detail-v">${highlightSummary(useCase)}</p>
+                  </div>`
+                : ""
+            }`
+              : `<p class="repo-detail-empty">상세 요약 준비 중입니다. 아래 GitHub에서 원문을 확인하세요.</p>`
           }
           <a class="repo-ext-link" href="${escapeHTML(repo.url)}" target="_blank" rel="noopener noreferrer">GitHub 열기 ↗</a>
         </div>`

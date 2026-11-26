@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import re
-from typing import Any, Dict, List, Optional
+import time
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from pydantic import ValidationError
@@ -180,6 +182,24 @@ GEMINI_SYSTEM_INSTRUCTION = (
 GEMINI_MODELS_LIST_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 GEMINI_EXCLUDE_MODEL_RE = re.compile(r"(embedding|imagen|veo|tts|audio|live|aqa|vision|bisect|robotics)", flags=re.IGNORECASE)
 
+# 503 / 429 / 타임아웃 시 지수 백오프 대기 시간(초): 5초 → 10초 → 20초 → 30초 (최대 5회 시도)
+LLM_MAX_ATTEMPTS = 5
+RETRY_BACKOFF_SECONDS = (5, 10, 20, 30)
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def _is_retryable_api_error(exc: LLMAPIError) -> bool:
+    """503/429/5xx 일시 장애 또는 네트워크·읽기 타임아웃이면 재시도 대상으로 판별합니다."""
+    return exc.status_code is None or exc.status_code in RETRYABLE_STATUS_CODES
+
+
+def _sleep_with_backoff(attempt: int) -> None:
+    """시도 횟수(1-based)에 맞춰 5→10→20→30초 + 소량 지터만큼 대기합니다."""
+    idx = min(max(attempt - 1, 0), len(RETRY_BACKOFF_SECONDS) - 1)
+    delay = RETRY_BACKOFF_SECONDS[idx] + random.uniform(0.0, 1.5)
+    logger.warning("Transient LLM error — backing off %.1fs before attempt %d/%d", delay, attempt + 1, LLM_MAX_ATTEMPTS)
+    time.sleep(delay)
+
 
 def _discover_gemini_flash_models(api_key: str) -> List[str]:
     """404 발생 시 v1beta/models를 조회해 generateContent를 지원하는 최신 Flash 모델 후보 목록을 찾습니다."""
@@ -235,7 +255,7 @@ def _call_gemini(prompt: str, api_key: str, model: str) -> str:
                     "responseMimeType": "application/json",
                 },
             },
-            timeout=LLM_TIMEOUT,
+            timeout=(15, LLM_TIMEOUT),
         )
     except requests.RequestException as exc:
         raise LLMAPIError("Gemini", None, _mask_secret(str(exc), api_key)) from exc
@@ -290,7 +310,7 @@ def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) ->
                     {"role": "user", "content": prompt},
                 ],
             },
-            timeout=LLM_TIMEOUT,
+            timeout=(15, LLM_TIMEOUT),
         )
     except requests.RequestException as exc:
         raise LLMAPIError("OpenAI", None, _mask_secret(str(exc), api_key)) from exc
@@ -306,50 +326,66 @@ def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) ->
 
 
 def summarize_github_repos(
-    repos: List[Dict[str, str]],
+    repos: List[Dict[str, Any]],
     gemini_api_key: Optional[str] = None,
     openai_api_key: Optional[str] = None,
 ) -> Dict[str, Dict[str, Any]]:
-    """GitHub 급상승 TOP 5의 README/설명을 바탕으로 한국어 1줄 요약과 아코디언 상세 요약(what/how/use_case)을 생성합니다."""
+    """README + HN 댓글 + GitHub 인기 이슈를 종합해 한국어 1줄 요약과 3포인트 상세 요약(what_how/reactions/use_case)을 생성합니다."""
     g_key = GEMINI_API_KEY if gemini_api_key is None else gemini_api_key
     o_key = OPENAI_API_KEY if openai_api_key is None else openai_api_key
     if not repos or (not g_key and not o_key):
         return {}
 
     prompt = (
-        "아래 GitHub AI 오픈소스 저장소 목록의 설명과 README 발췌문을 읽고, 각 저장소마다 "
-        "100% 자연스러운 한국어로 1줄 요약(description, 45자 이내)과 상세 요약(detail_summary: "
-        "what=무슨 도구인지 1줄, how=핵심 동작 방식·원리 1줄, use_case=실무 활용처 1줄)을 작성하세요. "
-        '반드시 {"org/repo": {"description": "...", "detail_summary": {"what": "...", "how": "...", "use_case": "..."}}} '
+        "아래 GitHub AI 오픈소스 저장소 목록(설명, README 발췌, Hacker News 댓글, GitHub 최다 댓글 이슈 포함)을 읽고, "
+        "단순 홍보성 문구를 피하고 각 저장소마다 100% 자연스러운 한국어로 다음을 작성하세요:\n"
+        "- description: 45자 이내 한국어 1줄 핵심 소개\n"
+        "- detail_summary:\n"
+        "  * what_how: 무슨 도구이고 어떤 구조/원리로 동작하는지 구체적 1~2문장\n"
+        "  * reactions: 실제 개발자 반응·리액션 (HN 댓글·이슈 기반 열광 포인트 vs 현실적 우려/한계. 댓글이 없으면 주목받는 기술적 배경 서술)\n"
+        "  * use_case: 실무나 개인 워크플로에서 어디에 써먹으면 좋은지 1문장\n"
+        '반드시 {"org/repo": {"description": "...", "detail_summary": {"what_how": "...", "reactions": "...", "use_case": "..."}}} '
         "형식의 JSON 객체만 출력하세요.\n"
         + json.dumps(repos, ensure_ascii=False)
     )
-    try:
-        raw = (
-            _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
-            if g_key
-            else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
-        )
-        parsed = _extract_json_payload(raw)
-        if not isinstance(parsed, dict):
-            return {}
-        out: Dict[str, Dict[str, Any]] = {}
-        for k, v in parsed.items():
-            if not isinstance(v, dict):
+
+    for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
+        try:
+            raw = (
+                _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
+                if g_key
+                else _call_openai_compat(prompt, o_key, OPENAI_BASE_URL, OPENAI_MODEL)
+            )
+            parsed = _extract_json_payload(raw)
+            if not isinstance(parsed, dict):
+                return {}
+            out: Dict[str, Dict[str, Any]] = {}
+            for k, v in parsed.items():
+                if not isinstance(v, dict):
+                    continue
+                desc = truncate_text(str(v.get("description") or ""), 90)
+                ds = v.get("detail_summary")
+                detail_clean = None
+                if isinstance(ds, dict) and (ds.get("what_how") or ds.get("what")):
+                    detail_clean = {
+                        "what_how": truncate_text(str(ds.get("what_how") or ds.get("what") or ""), 220),
+                        "reactions": truncate_text(str(ds.get("reactions") or ds.get("how") or ""), 220),
+                        "use_case": truncate_text(str(ds.get("use_case") or ""), 160),
+                    }
+                out[str(k)] = {"description": desc, "detail_summary": detail_clean}
+            return out
+        except LLMAPIError as exc:
+            logger.warning("GitHub repo summarization attempt %d/%d failed (status=%s): %s", attempt, LLM_MAX_ATTEMPTS, exc.status_code, exc.detail)
+            if attempt < LLM_MAX_ATTEMPTS and _is_retryable_api_error(exc):
+                _sleep_with_backoff(attempt)
                 continue
-            desc = truncate_text(str(v.get("description") or ""), 90)
-            ds = v.get("detail_summary")
-            detail_clean = None
-            if isinstance(ds, dict) and ds.get("what") and ds.get("how") and ds.get("use_case"):
-                detail_clean = {
-                    "what": truncate_text(str(ds["what"]), 140),
-                    "how": truncate_text(str(ds["how"]), 140),
-                    "use_case": truncate_text(str(ds["use_case"]), 140),
-                }
-            out[str(k)] = {"description": desc, "detail_summary": detail_clean}
-        return out
-    except Exception as exc:
-        logger.warning("GitHub repo detail summarization failed (keeping originals): %s", exc)
+            break
+        except Exception as exc:
+            logger.warning("GitHub repo detail summarization failed on attempt %d/%d: %s", attempt, LLM_MAX_ATTEMPTS, exc)
+            if attempt < LLM_MAX_ATTEMPTS:
+                _sleep_with_backoff(attempt)
+                continue
+            break
     return {}
 
 
@@ -513,30 +549,30 @@ def build_fallback_edition(items: List[RawItem], date_str: str, issue_no: int) -
     )
 
 
-def curate_edition(
+def curate_edition_with_status(
     items: List[RawItem],
     date_str: str,
     issue_no: int,
     gemini_api_key: Optional[str] = None,
     openai_api_key: Optional[str] = None,
-) -> Edition:
-    """LLM으로 100% 한국어 에디션을 생성(실패 시 1회 재시도)하고, 폴백 시 정확한 HTTP 상태코드·원인을 로깅합니다."""
+) -> Tuple[Edition, bool]:
+    """LLM으로 100% 한국어 에디션을 생성(최대 5회 지수 백오프 재시도)하고 (Edition, used_fallback)을 반환합니다."""
     g_key = GEMINI_API_KEY if gemini_api_key is None else gemini_api_key
     o_key = OPENAI_API_KEY if openai_api_key is None else openai_api_key
 
     if not items:
         logger.warning("FALLBACK_REASON: collected 0 candidate items; switching to rule-based fallback.")
-        return build_fallback_edition(items, date_str, issue_no)
+        return build_fallback_edition(items, date_str, issue_no), True
 
     if not g_key and not o_key:
         logger.warning("FALLBACK_REASON: neither GEMINI_API_KEY nor OPENAI_API_KEY is set; switching to rule-based fallback.")
-        return build_fallback_edition(items, date_str, issue_no)
+        return build_fallback_edition(items, date_str, issue_no), True
 
     provider = f"Gemini({GEMINI_MODEL})" if g_key else f"OpenAI({OPENAI_MODEL})"
     prompt = _build_editor_prompt(items, date_str, issue_no)
     last_error = "unknown error"
 
-    for attempt in range(1, 3):
+    for attempt in range(1, LLM_MAX_ATTEMPTS + 1):
         try:
             raw = (
                 _call_gemini_smart(prompt, g_key, GEMINI_MODEL)
@@ -547,24 +583,56 @@ def curate_edition(
             parsed["date"] = date_str
             parsed["issue_no"] = issue_no
             edition = Edition.model_validate(parsed)
-            logger.info("LLM curation succeeded via %s on attempt %d", provider, attempt)
-            return edition
+            logger.info("LLM curation succeeded via %s on attempt %d/%d", provider, attempt, LLM_MAX_ATTEMPTS)
+            return edition, False
         except LLMAPIError as exc:
             last_error = str(exc)
             logger.error(
-                "LLM API call failed on attempt %d/2 (%s, status=%s): %s",
+                "LLM API call failed on attempt %d/%d (%s, status=%s): %s",
                 attempt,
+                LLM_MAX_ATTEMPTS,
                 exc.provider,
                 exc.status_code,
                 exc.detail,
             )
+            if attempt < LLM_MAX_ATTEMPTS and _is_retryable_api_error(exc):
+                _sleep_with_backoff(attempt)
+                continue
+            if not _is_retryable_api_error(exc):
+                break
         except (KeyError, ValueError, json.JSONDecodeError, ValidationError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
-            logger.error("LLM output parsing/schema validation failed on attempt %d/2 (%s): %s", attempt, provider, last_error)
+            logger.error(
+                "LLM output parsing/schema validation failed on attempt %d/%d (%s): %s",
+                attempt,
+                LLM_MAX_ATTEMPTS,
+                provider,
+                last_error,
+            )
+            if attempt < LLM_MAX_ATTEMPTS:
+                _sleep_with_backoff(attempt)
 
     logger.error(
         "FALLBACK_TRIGGERED: All LLM attempts failed via %s. Last error: %s. Generating rule-based fallback edition.",
         provider,
         last_error,
     )
-    return build_fallback_edition(items, date_str, issue_no)
+    return build_fallback_edition(items, date_str, issue_no), True
+
+
+def curate_edition(
+    items: List[RawItem],
+    date_str: str,
+    issue_no: int,
+    gemini_api_key: Optional[str] = None,
+    openai_api_key: Optional[str] = None,
+) -> Edition:
+    """기존 호출자 호환용 래퍼: 생성된 Edition 객체만 반환합니다."""
+    edition, _ = curate_edition_with_status(
+        items,
+        date_str=date_str,
+        issue_no=issue_no,
+        gemini_api_key=gemini_api_key,
+        openai_api_key=openai_api_key,
+    )
+    return edition

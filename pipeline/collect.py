@@ -484,6 +484,57 @@ def fetch_github_readme_snippet(
     return ""
 
 
+def fetch_github_repo_community_signals(
+    repo_name: str,
+    session: Optional[requests.Session] = None,
+) -> Dict[str, List[str]]:
+    """GitHub 저장소에 대한 HN Algolia 상위 댓글(3~5개)과 GitHub 최다 댓글 이슈 제목(3개)을 수집합니다."""
+    signals: Dict[str, List[str]] = {"hn_comments": [], "gh_top_issues": []}
+    if not repo_name or "/" not in repo_name:
+        return signals
+    sess = session or _build_session()
+
+    # 1) Hacker News Algolia API로 관련 화제 스레드 검색 → 상위 댓글 3~5개 수집
+    try:
+        resp = sess.get(
+            "https://hn.algolia.com/api/v1/search",
+            params={"query": repo_name, "tags": "story", "hitsPerPage": 3},
+            timeout=ARTICLE_META_TIMEOUT,
+        )
+        if resp.ok:
+            hits = resp.json().get("hits") or []
+            if hits:
+                best_hit = max(hits, key=lambda h: int(h.get("num_comments") or 0))
+                story_id = best_hit.get("objectID")
+                if story_id and int(best_hit.get("num_comments") or 0) > 0:
+                    item_resp = sess.get(HN_ITEM_URL.format(item_id=story_id), timeout=ARTICLE_META_TIMEOUT)
+                    if item_resp.ok:
+                        kids = (item_resp.json() or {}).get("kids") or []
+                        signals["hn_comments"] = fetch_hn_top_comments(kids, session=sess, limit=5)
+    except Exception:
+        pass
+
+    # 2) GitHub Issues API로 댓글이 가장 많이 달린 이슈/논의 제목 3개 수집
+    try:
+        iss_resp = sess.get(
+            f"https://api.github.com/repos/{repo_name}/issues",
+            params={"state": "all", "sort": "comments", "direction": "desc", "per_page": 3},
+            timeout=ARTICLE_META_TIMEOUT,
+        )
+        if iss_resp.ok:
+            issues = iss_resp.json()
+            if isinstance(issues, list):
+                signals["gh_top_issues"] = [
+                    f"{(it.get('title') or '').strip()} (댓글 {int(it.get('comments') or 0)}개)"
+                    for it in issues[:3]
+                    if (it.get("title") or "").strip()
+                ]
+    except Exception:
+        pass
+
+    return signals
+
+
 def fetch_github_trending_ai(session: Optional[requests.Session] = None, days: int = 7) -> List[RawItem]:
     """최근 1주일간 스타가 빠르게 늘어난 AI/LLM 오픈소스 저장소와 상위 5개 README 앞부분을 조회합니다."""
     sess = session or _build_session()
@@ -527,16 +578,21 @@ def fetch_github_trending_ai(session: Optional[requests.Session] = None, days: i
             )
         )
 
-    # 상위 5개 저장소의 README 앞부분(2,000자)을 병렬로 보강합니다(실패 시 description 폴백).
-    def _attach_readme(item: RawItem) -> None:
+    # 상위 5개 저장소의 README 앞부분(2,000자)과 HN 댓글·GitHub 인기 이슈를 병렬로 보강합니다.
+    def _attach_repo_context(item: RawItem) -> None:
         rname = item.extra.get("repo_name") or ""
         snippet = fetch_github_readme_snippet(rname, session=sess)
         if snippet:
             item.extra["readme_snippet"] = snippet
+        signals = fetch_github_repo_community_signals(rname, session=sess)
+        if signals["hn_comments"]:
+            item.extra["hn_comments"] = signals["hn_comments"]
+        if signals["gh_top_issues"]:
+            item.extra["gh_top_issues"] = signals["gh_top_issues"]
 
     if items:
         with ThreadPoolExecutor(max_workers=min(5, MAX_WORKERS)) as pool:
-            list(pool.map(_attach_readme, items[:5]))
+            list(pool.map(_attach_repo_context, items[:5]))
 
     return items
 

@@ -10,6 +10,7 @@ from pipeline.collect import (
     deduplicate_items,
     extract_meta_description,
     fetch_github_readme_snippet,
+    fetch_github_repo_community_signals,
     fetch_hn_top_comments,
     fetch_major_bigtech_models,
     fetch_onprem_open_llms,
@@ -269,3 +270,32 @@ def test_fetch_github_readme_snippet_truncates_to_limit() -> None:
     snippet = fetch_github_readme_snippet("org/demo-repo", session=mock_session, max_chars=200)
     assert len(snippet) <= 200
     assert snippet.startswith("Demo Repo")
+
+
+def test_fetch_github_repo_community_signals_collects_hn_and_issues() -> None:
+    mock_session = MagicMock()
+
+    resp_algolia = MagicMock(ok=True)
+    resp_algolia.json.return_value = {"hits": [{"objectID": "555", "num_comments": 42}]}
+
+    resp_hn_story = MagicMock(ok=True)
+    resp_hn_story.json.return_value = {"kids": [901]}
+
+    resp_hn_comment = MagicMock(ok=True)
+    resp_hn_comment.raise_for_status.return_value = None
+    resp_hn_comment.json.return_value = {
+        "text": "This agent harness cut our token usage in half on large monorepos."
+    }
+
+    resp_gh_issues = MagicMock(ok=True)
+    resp_gh_issues.json.return_value = [
+        {"title": "Support air-gapped vLLM endpoints", "comments": 31},
+        {"title": "Memory leak in long sessions", "comments": 19},
+    ]
+
+    mock_session.get.side_effect = [resp_algolia, resp_hn_story, resp_hn_comment, resp_gh_issues]
+    signals = fetch_github_repo_community_signals("org/demo-repo", session=mock_session)
+    assert len(signals["hn_comments"]) == 1
+    assert "cut our token usage" in signals["hn_comments"][0]
+    assert len(signals["gh_top_issues"]) == 2
+    assert "air-gapped vLLM" in signals["gh_top_issues"][0]

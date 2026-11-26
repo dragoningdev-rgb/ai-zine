@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -60,11 +61,37 @@ def compute_next_issue_no(date_str: str, data_dir: Path = DATA_DIR) -> int:
     return max_no + 1
 
 
-def publish_edition(edition: Edition, data_dir: Path = DATA_DIR) -> Path:
-    """에디션 JSON을 저장하고 index.json과 picks.json을 함께 최신 상태로 갱신합니다."""
-    validated = Edition.model_validate(edition.model_dump())
+KOREAN_CHAR_RE = re.compile(r"[가-힣]")
+FALLBACK_MARKER = "LLM API 폴백 모드로 생성된 요약"
 
+
+def has_valid_korean_edition(date_str: str, data_dir: Path = DATA_DIR) -> bool:
+    """해당 날짜의 에디션이 이미 정상 한글 LLM 발행본인지 검사합니다."""
+    edition_path = data_dir / "editions" / f"{date_str}.json"
+    if not edition_path.exists():
+        return False
+    try:
+        ed = Edition.model_validate(read_json(edition_path))
+        hero_text = f"{ed.brief.hero_news.title} {' '.join(ed.brief.hero_news.summary)}"
+        if FALLBACK_MARKER in hero_text:
+            return False
+        return bool(KOREAN_CHAR_RE.search(ed.brief.hero_news.title))
+    except Exception:
+        return False
+
+
+def publish_edition(edition: Edition, data_dir: Path = DATA_DIR, is_fallback: bool = False) -> Path:
+    """에디션 JSON을 저장하고 index.json·picks.json을 갱신합니다. 폴백 시 기존 정상 한글 발행본은 덮어쓰지 않습니다."""
+    validated = Edition.model_validate(edition.model_dump())
     edition_path = data_dir / "editions" / f"{validated.date}.json"
+
+    if is_fallback and has_valid_korean_edition(validated.date, data_dir=data_dir):
+        logger.warning(
+            "PROTECTED_DATA: Skipping fallback overwrite because a valid Korean edition already exists at %s",
+            edition_path,
+        )
+        return edition_path
+
     write_json(edition_path, validated.model_dump())
 
     # 발행 날짜 목록을 중복 없이 최신순으로 정렬해 저장합니다.
@@ -167,25 +194,41 @@ def update_radar(
             onprem_models=[],
         )
 
-    # 1) GitHub 급상승 TOP 5 갱신 + README 기반 한국어 1줄 요약 및 아코디언 상세 요약 생성
+    # 1) GitHub 급상승 TOP 5 갱신 + README·HN댓글·이슈 기반 한국어 상세 요약 생성 (실패 시 기존 한글 요약 보존)
     if len(github_items) >= 5:
+        prev_repo_map = {r.name: r for r in existing.github_trending_top5}
         raw_repos = [
             {
                 "name": item.extra.get("repo_name") or item.title.split(":")[0].strip(),
                 "description": item.summary or item.title,
                 "readme_snippet": (item.extra.get("readme_snippet") or "")[:2000],
+                "hn_comments": (item.extra.get("hn_comments") or [])[:5],
+                "gh_top_issues": (item.extra.get("gh_top_issues") or [])[:3],
             }
             for item in github_items[:5]
         ]
         ko_map = summarize_github_repos(raw_repos)
-        existing.github_trending_top5 = []
+        new_top5: List[GithubTrendingRepo] = []
         for rank, item in enumerate(github_items[:5], start=1):
             rname = raw_repos[rank - 1]["name"]
             curated = ko_map.get(rname) or {}
-            desc_ko = curated.get("description") or raw_repos[rank - 1]["description"]
+            prev_repo = prev_repo_map.get(rname)
+
+            # Gemini 요약 성공 시 새 한글 데이터 사용, 실패 시 기존 radar.json의 한글 설명·상세 요약 보존
+            desc_ko = (
+                curated.get("description")
+                or (prev_repo.description if prev_repo and KOREAN_CHAR_RE.search(prev_repo.description) else None)
+                or raw_repos[rank - 1]["description"]
+            )
             detail_raw = curated.get("detail_summary")
-            detail_obj = RepoDetailSummary.model_validate(detail_raw) if detail_raw else None
-            existing.github_trending_top5.append(
+            if detail_raw:
+                detail_obj: Optional[RepoDetailSummary] = RepoDetailSummary.model_validate(detail_raw)
+            elif prev_repo and prev_repo.detail_summary:
+                detail_obj = prev_repo.detail_summary
+            else:
+                detail_obj = None
+
+            new_top5.append(
                 GithubTrendingRepo(
                     rank=rank,
                     name=rname,
@@ -196,6 +239,7 @@ def update_radar(
                     url=item.url,
                 )
             )
+        existing.github_trending_top5 = new_top5
 
     # 2) 메이저 빅테크 최신 플래그십 모델 비교 목록 갱신 (최대 10개, OpenRouter 실데이터)
     if major_models:

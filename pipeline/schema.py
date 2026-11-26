@@ -118,11 +118,13 @@ class PicksArchive(BaseModel):
     items: List[PickArchiveItem] = Field(default_factory=list)
 
 
-# 판도 탭 GitHub 급상승 저장소의 아코디언 상세 요약 구조 (선택 필드 — 하위 호환 보장)
+# 판도 탭 GitHub 급상승 저장소의 아코디언 상세 요약 구조 (신규 what_how/reactions/use_case + 구버전 what/how 하위 호환)
 class RepoDetailSummary(BaseModel):
-    what: str = Field(..., min_length=1)
-    how: str = Field(..., min_length=1)
-    use_case: str = Field(..., min_length=1)
+    what_how: Optional[str] = None
+    reactions: Optional[str] = None
+    use_case: Optional[str] = None
+    what: Optional[str] = None
+    how: Optional[str] = None
 
 
 # 판도 탭의 GitHub 급상승 저장소 1건 구조

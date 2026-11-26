@@ -22,7 +22,7 @@ from pipeline.collect import (
     fetch_onprem_open_llms,
 )
 from pipeline.config import DATA_DIR
-from pipeline.curate import curate_edition
+from pipeline.curate import curate_edition_with_status
 from pipeline.schema import Edition
 from pipeline.utils import write_json
 
@@ -80,7 +80,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # 2단계: LLM 편집장(실패 시 규칙 기반 폴백)으로 한국어 매거진 에디션을 생성합니다.
     issue_no = compute_next_issue_no(date_str, data_dir=DATA_DIR)
-    edition = curate_edition(items, date_str=date_str, issue_no=issue_no)
+    edition, used_fallback = curate_edition_with_status(items, date_str=date_str, issue_no=issue_no)
 
     # 3단계: 파일에 쓰기 전 Pydantic 스키마 무결성을 최종 검증합니다.
     validated = Edition.model_validate(edition.model_dump())
@@ -88,11 +88,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.dry_run:
         out_path = args.output_dir / f"{date_str}.json"
         write_json(out_path, validated.model_dump())
-        logger.info("[DRY-RUN] Validated edition written to %s", out_path)
+        logger.info("[DRY-RUN] Validated edition written to %s (fallback=%s)", out_path, used_fallback)
         return 0
 
-    # 4단계: web/data/에 당일 에디션, 과월호 목록, 줍줍 아카이브를 발행합니다.
-    publish_edition(validated, data_dir=DATA_DIR)
+    # 4단계: web/data/에 당일 에디션, 과월호 목록, 줍줍 아카이브를 발행합니다(폴백 시 기존 정상 한글본 보호).
+    publish_edition(validated, data_dir=DATA_DIR, is_fallback=used_fallback)
 
     if args.update_radar and not args.offline:
         gh_items = fetch_github_trending_ai()

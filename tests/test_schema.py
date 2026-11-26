@@ -133,13 +133,17 @@ def test_fallback_curate_and_publish_without_api_key(tmp_path: Path) -> None:
 
 
 def test_gemini_http_error_logs_status_code_and_falls_back(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify Gemini API error logs exact HTTP status & masks key while falling back cleanly."""
+    """Verify Gemini API error logs exact HTTP status, retries with backoff, masks key, and falls back cleanly."""
+    import time
     from unittest.mock import MagicMock
 
     import requests
 
     from pipeline.collect import RawItem
     from pipeline.curate import curate_edition
+
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", lambda s: sleeps.append(s))
 
     fake_resp = MagicMock()
     fake_resp.ok = False
@@ -152,9 +156,66 @@ def test_gemini_http_error_logs_status_code_and_falls_back(caplog: pytest.LogCap
         edition = curate_edition(items, date_str="2026-11-27", issue_no=3, gemini_api_key="SECRET_KEY_123", openai_api_key="")
 
     assert edition.date == "2026-11-27"
+    assert len(sleeps) == 4  # 5회 시도 사이 4번 지수 백오프 (5->10->20->30s)
     assert "status=429" in caplog.text
     assert "SECRET_KEY_123" not in caplog.text
     assert "***REDACTED***" in caplog.text
+
+
+def test_publish_edition_protects_existing_korean_edition_from_fallback(tmp_path: Path) -> None:
+    """Verify fallback run never overwrites an existing valid Korean edition."""
+    from pipeline.build_data import publish_edition
+    from pipeline.curate import build_fallback_edition
+
+    good_edition = build_fallback_edition([], date_str="2026-11-28", issue_no=4)
+    good_edition.brief.hero_news.title = "정상 한글 LLM 발행 헤드라인"
+    good_edition.brief.hero_news.summary = ["실제 번역 요약 1줄", "실제 번역 요약 2줄", "실제 번역 요약 3줄"]
+    publish_edition(good_edition, data_dir=tmp_path, is_fallback=False)
+
+    fallback_ed = build_fallback_edition([], date_str="2026-11-28", issue_no=4)
+    fallback_ed.brief.hero_news.title = "English fallback title"
+    publish_edition(fallback_ed, data_dir=tmp_path, is_fallback=True)
+
+    saved = Edition.model_validate(json.loads((tmp_path / "editions" / "2026-11-28.json").read_text(encoding="utf-8")))
+    assert saved.brief.hero_news.title == "정상 한글 LLM 발행 헤드라인"
+
+
+def test_update_radar_preserves_existing_korean_repo_summary_on_llm_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify radar.json keeps existing Korean repo description & detail_summary when LLM fails."""
+    from pipeline.build_data import update_radar
+    from pipeline.collect import RawItem
+    import pipeline.build_data as bd
+
+    gh_items = [
+        RawItem(title=f"org/repo-{i}", url=f"https://github.com/org/repo-{i}", source="GitHub Trending", kind="tool", summary=f"English desc {i}", score=500, extra={"repo_name": f"org/repo-{i}", "stars": 500, "language": "Python"})
+        for i in range(1, 6)
+    ]
+
+    # 1차: LLM 성공으로 한글 설명 + 상세 요약 저장
+    monkeypatch.setattr(
+        bd,
+        "summarize_github_repos",
+        lambda repos: {
+            "org/repo-1": {
+                "description": "기존 한글 1줄 요약",
+                "detail_summary": {
+                    "what_how": "기존 핵심 원리",
+                    "reactions": "기존 개발자 반응",
+                    "use_case": "기존 실무 활용",
+                },
+            }
+        },
+    )
+    update_radar(gh_items, date_str="2026-11-26", data_dir=tmp_path)
+
+    # 2차: LLM 실패({}) 시에도 기존 한글 설명과 상세 요약이 보존되어야 함
+    monkeypatch.setattr(bd, "summarize_github_repos", lambda repos: {})
+    radar_path = update_radar(gh_items, date_str="2026-11-26", data_dir=tmp_path)
+    assert radar_path is not None
+    radar = RadarData.model_validate(json.loads(radar_path.read_text(encoding="utf-8")))
+    assert radar.github_trending_top5[0].description == "기존 한글 1줄 요약"
+    assert radar.github_trending_top5[0].detail_summary is not None
+    assert radar.github_trending_top5[0].detail_summary.reactions == "기존 개발자 반응"
 
 
 def test_update_radar_computes_real_deltas(tmp_path: Path) -> None:
