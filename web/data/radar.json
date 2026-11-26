@@ -211,7 +211,7 @@
       "license": "MIT",
       "params_vram": "671B MoE · FP8 ~670GB",
       "vllm_supported": true,
-      "trending_score": 77.0,
+      "trending_score": 76.5,
       "likes": 6704,
       "delta": 0,
       "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017"
@@ -224,7 +224,7 @@
       "params_vram": "35B · VRAM ~70GB",
       "vllm_supported": true,
       "trending_score": 23.0,
-      "likes": 3187,
+      "likes": 3186,
       "delta": 0,
       "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B"
     },
@@ -235,8 +235,8 @@
       "license": "Apache 2.0",
       "params_vram": "26B · VRAM ~52GB",
       "vllm_supported": true,
-      "trending_score": 21.0,
-      "likes": 1814,
+      "trending_score": 22.0,
+      "likes": 1815,
       "delta": 0,
       "url": "https://huggingface.co/google/gemma-4-26B-A4B-it"
     },
