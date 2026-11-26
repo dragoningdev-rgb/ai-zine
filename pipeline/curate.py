@@ -14,10 +14,10 @@ from pipeline.collect import RawItem
 from pipeline.config import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
+    LLM_TIMEOUT,
     OPENAI_API_KEY,
     OPENAI_BASE_URL,
     OPENAI_MODEL,
-    REQUEST_TIMEOUT,
 )
 from pipeline.schema import (
     BriefSection,
@@ -86,13 +86,19 @@ def _mask_secret(text: str, secret: str) -> str:
     return text.replace(secret, "***REDACTED***")
 
 
+TRAILING_COMMA_RE = re.compile(r",\s*([}\]])")
+
+
 def _extract_json_payload(raw_text: str) -> Any:
-    """LLM 응답 텍스트에서 마크다운 코드블록을 벗겨내고 JSON 객체/배열로 파싱합니다."""
-    text = raw_text.strip()
+    """LLM 응답 텍스트에서 마크다운 코드펜스와 여분 문구를 제거하고 안전하게 JSON으로 파싱합니다."""
+    text = (raw_text or "").strip()
     fence = JSON_FENCE_RE.search(text)
     if fence:
-        text = fence.group(1)
+        text = fence.group(1).strip()
     else:
+        # ```json ... ``` 닫힘 누락 등 비정형 펜스도 안전하게 벗겨냅니다.
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
         obj_start, arr_start = text.find("{"), text.find("[")
         starts = [i for i in (obj_start, arr_start) if i != -1]
         if starts:
@@ -101,7 +107,11 @@ def _extract_json_payload(raw_text: str) -> Any:
             end = text.rfind(end_char)
             if end > start:
                 text = text[start : end + 1]
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        cleaned = TRAILING_COMMA_RE.sub(r"\1", text)
+        return json.loads(cleaned)
 
 
 def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> str:
@@ -160,7 +170,7 @@ def _build_editor_prompt(items: List[RawItem], date_str: str, issue_no: int) -> 
 
 
 def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    """Google Gemini REST API(v1beta)를 호출하고 실패 시 정확한 HTTP 상태코드·에러 본문을 기록합니다."""
+    """Google Gemini REST API(v1beta)를 호출하고 responseMimeType=application/json을 강제합니다."""
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     try:
         resp = requests.post(
@@ -168,22 +178,26 @@ def _call_gemini(prompt: str, api_key: str, model: str) -> str:
             params={"key": api_key},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.35, "responseMimeType": "application/json"},
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": 4096,
+                    "responseMimeType": "application/json",
+                },
             },
-            timeout=REQUEST_TIMEOUT * 3,
+            timeout=LLM_TIMEOUT,
         )
     except requests.RequestException as exc:
         raise LLMAPIError("Gemini", None, _mask_secret(str(exc), api_key)) from exc
 
     if not resp.ok:
-        body_preview = _mask_secret(resp.text[:500].replace("\n", " "), api_key)
+        body_preview = _mask_secret(resp.text[:600].replace("\n", " "), api_key)
         raise LLMAPIError("Gemini", resp.status_code, f"model={model} body={body_preview}")
 
     try:
         data = resp.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except (ValueError, KeyError, IndexError) as exc:
-        raise LLMAPIError("Gemini", resp.status_code, f"unexpected response structure: {resp.text[:300]}") from exc
+        raise LLMAPIError("Gemini", resp.status_code, f"unexpected response structure: {resp.text[:400]}") from exc
 
 
 def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) -> str:
@@ -195,26 +209,26 @@ def _call_openai_compat(prompt: str, api_key: str, base_url: str, model: str) ->
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
                 "model": model,
-                "temperature": 0.35,
+                "temperature": 0.3,
                 "response_format": {"type": "json_object"},
                 "messages": [
                     {"role": "system", "content": "You are a Korean AI magazine editor. Output valid JSON in Korean only."},
                     {"role": "user", "content": prompt},
                 ],
             },
-            timeout=REQUEST_TIMEOUT * 3,
+            timeout=LLM_TIMEOUT,
         )
     except requests.RequestException as exc:
         raise LLMAPIError("OpenAI", None, _mask_secret(str(exc), api_key)) from exc
 
     if not resp.ok:
-        body_preview = _mask_secret(resp.text[:500].replace("\n", " "), api_key)
+        body_preview = _mask_secret(resp.text[:600].replace("\n", " "), api_key)
         raise LLMAPIError("OpenAI", resp.status_code, f"model={model} body={body_preview}")
 
     try:
         return resp.json()["choices"][0]["message"]["content"]
     except (ValueError, KeyError, IndexError) as exc:
-        raise LLMAPIError("OpenAI", resp.status_code, f"unexpected response structure: {resp.text[:300]}") from exc
+        raise LLMAPIError("OpenAI", resp.status_code, f"unexpected response structure: {resp.text[:400]}") from exc
 
 
 def translate_github_descriptions(

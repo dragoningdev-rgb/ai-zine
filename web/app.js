@@ -25,7 +25,7 @@
     picksTag: "ALL",
     picksQuery: "",
     radar: null,
-    radarCategory: "coding",
+    radarCategory: "major",
     scraps: loadJSON(STORAGE_KEYS.SCRAPS, []),
     readCardsByDate: loadJSON(STORAGE_KEYS.READ_CARDS, {}),
     completedDates: loadJSON(STORAGE_KEYS.COMPLETED_DATES, []),
@@ -602,7 +602,54 @@
     }
 
     const repos = state.radar.github_trending_top5 || [];
-    const rankings = state.radar.model_rankings?.[state.radarCategory] || [];
+    const majorModels = state.radar.major_models || [];
+    const onpremModels = state.radar.onprem_models || [];
+
+    const renderMajorList = () =>
+      majorModels
+        .map((m) => {
+          const inner = `
+            <div class="rank-row-top">
+              <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
+              <div class="rank-model">
+                <span class="rank-model-name">${escapeHTML(m.name)}</span>
+                <span class="rank-provider">${escapeHTML(m.provider)}${m.context_window ? ` · ${escapeHTML(m.context_window)}` : ""}</span>
+              </div>
+              ${renderDeltaBadge(m.delta)}
+            </div>
+            <div class="metric-strip">
+              <span class="metric-chip strong">종합 <strong>${Number(m.overall).toFixed(1)}</strong></span>
+              <span class="metric-chip">코딩 <strong>${Number(m.coding).toFixed(1)}</strong></span>
+              <span class="metric-chip">추론 <strong>${Number(m.reasoning).toFixed(1)}</strong></span>
+            </div>`;
+          return m.url
+            ? `<a class="rank-card" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+            : `<div class="rank-card">${inner}</div>`;
+        })
+        .join("");
+
+    const renderOnPremList = () =>
+      onpremModels
+        .map((m) => {
+          const inner = `
+            <div class="rank-row-top">
+              <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
+              <div class="rank-model">
+                <span class="rank-model-name">${escapeHTML(m.name)}</span>
+                <span class="rank-provider">${escapeHTML(m.org)}</span>
+              </div>
+              ${renderDeltaBadge(m.delta)}
+            </div>
+            <div class="spec-badges">
+              <span class="spec-badge license">${escapeHTML(m.license)}</span>
+              <span class="spec-badge vram">${escapeHTML(m.params_vram)}</span>
+              ${m.vllm_supported ? `<span class="spec-badge vllm">vLLM 지원</span>` : ""}
+            </div>`;
+          return m.url
+            ? `<a class="rank-card" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+            : `<div class="rank-card">${inner}</div>`;
+        })
+        .join("");
 
     container.innerHTML = `
       <section class="card">
@@ -632,31 +679,15 @@
 
       <section class="card">
         <h2 class="radar-block-title">
-          <span>부문별 오픈 LLM 트렌드 TOP 5</span>
+          <span>LLM 판도 비교 TOP 5</span>
           <span class="card-num">전주 대비</span>
         </h2>
-        <div class="seg-tabs" role="tablist" aria-label="모델 순위 부문">
-          <button type="button" class="seg-btn ${state.radarCategory === "coding" ? "active" : ""}" data-radar-cat="coding">코딩</button>
-          <button type="button" class="seg-btn ${state.radarCategory === "reasoning" ? "active" : ""}" data-radar-cat="reasoning">추론</button>
-          <button type="button" class="seg-btn ${state.radarCategory === "local" ? "active" : ""}" data-radar-cat="local">로컬</button>
+        <div class="seg-tabs seg-tabs-2" role="tablist" aria-label="모델 비교 부문">
+          <button type="button" class="seg-btn ${state.radarCategory === "major" ? "active" : ""}" data-radar-cat="major">메이저 빅테크</button>
+          <button type="button" class="seg-btn ${state.radarCategory === "onprem" ? "active" : ""}" data-radar-cat="onprem">폐쇄망 오픈LLM</button>
         </div>
         <div class="rank-list">
-          ${rankings
-            .map((m) => {
-              const metric = m.metric_label || Number(m.score).toFixed(1);
-              const inner = `
-                <span class="rank-num ${m.rank === 1 ? "top1" : ""}">${m.rank}</span>
-                <div class="rank-model">
-                  <span class="rank-model-name">${escapeHTML(m.name)}</span>
-                  <span class="rank-provider">${escapeHTML(m.provider)}</span>
-                </div>
-                <span class="rank-score">${escapeHTML(metric)}</span>
-                ${renderDeltaBadge(m.delta)}`;
-              return m.url
-                ? `<a class="rank-row" href="${escapeHTML(m.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
-                : `<div class="rank-row">${inner}</div>`;
-            })
-            .join("")}
+          ${state.radarCategory === "major" ? renderMajorList() : renderOnPremList()}
         </div>
       </section>
     `;

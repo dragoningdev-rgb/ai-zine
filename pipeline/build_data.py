@@ -13,8 +13,8 @@ from pipeline.curate import translate_github_descriptions
 from pipeline.schema import (
     Edition,
     GithubTrendingRepo,
-    ModelRankEntry,
-    ModelRankings,
+    MajorModelEntry,
+    OnPremModelEntry,
     PickArchiveItem,
     PicksArchive,
     RadarData,
@@ -133,39 +133,19 @@ def _format_week_label(date_str: str) -> str:
         return date_str
 
 
-def _build_ranked_category(
-    new_models: List[Dict[str, Any]],
-    prev_entries: List[ModelRankEntry],
-) -> List[ModelRankEntry]:
-    """지난주 순위와 비교해 실제 순위 변동(▲/▼/NEW)을 계산합니다."""
-    prev_rank_map = {entry.name.lower(): entry.rank for entry in prev_entries}
-    ranked: List[ModelRankEntry] = []
-
-    for rank, item in enumerate(new_models[:5], start=1):
-        name = item["name"]
-        prev_rank = prev_rank_map.get(name.lower())
-        delta: Union[int, str] = "NEW" if prev_rank is None else (prev_rank - rank)
-        ranked.append(
-            ModelRankEntry(
-                rank=rank,
-                name=name,
-                provider=item.get("provider") or "Community",
-                score=float(item.get("score") or 0),
-                delta=delta,  # type: ignore[arg-type]
-                metric_label=item.get("metric_label"),
-                url=item.get("url"),
-            )
-        )
-    return ranked
+def _compute_delta(name: str, new_rank: int, prev_rank_map: Dict[str, int]) -> Union[int, str]:
+    prev_rank = prev_rank_map.get(name.lower())
+    return "NEW" if prev_rank is None else (prev_rank - new_rank)
 
 
 def update_radar(
     github_items: List[RawItem],
-    hf_models: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    major_models: Optional[List[Dict[str, Any]]] = None,
+    onprem_models: Optional[List[Dict[str, Any]]] = None,
     date_str: Optional[str] = None,
     data_dir: Path = DATA_DIR,
 ) -> Optional[Path]:
-    """주간 판도(radar.json)의 GitHub 급상승 TOP 5(한국어 번역 포함)와 HuggingFace 실데이터 모델 순위를 갱신합니다."""
+    """주간 판도(radar.json)의 GitHub TOP 5(한국어 번역), 메이저 빅테크, 폐쇄망 오픈LLM을 갱신합니다."""
     radar_path = data_dir / "radar.json"
     today = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -180,9 +160,10 @@ def update_radar(
         existing = RadarData(
             updated_at=today,
             week_label=_format_week_label(today),
-            source="GitHub Search API · HuggingFace Trending Models",
+            source="GitHub Search API · OpenRouter · HuggingFace Official Orgs",
             github_trending_top5=[],
-            model_rankings=ModelRankings(),
+            major_models=[],
+            onprem_models=[],
         )
 
     # 1) GitHub 급상승 TOP 5 갱신 + LLM 한국어 1줄 설명 번역
@@ -207,18 +188,45 @@ def update_radar(
             for rank, item in enumerate(github_items[:5], start=1)
         ]
 
-    # 2) HuggingFace 실시간 트렌딩 모델 API 데이터로 부문별 TOP 5 + 전주 대비 순위 변동 계산
-    if hf_models:
-        prev = existing.model_rankings
-        existing.model_rankings = ModelRankings(
-            coding=_build_ranked_category(hf_models.get("coding", []), prev.coding) or prev.coding,
-            reasoning=_build_ranked_category(hf_models.get("reasoning", []), prev.reasoning) or prev.reasoning,
-            local=_build_ranked_category(hf_models.get("local", []), prev.local) or prev.local,
-        )
+    # 2) 메이저 빅테크 플래그십 모델 비교 목록 갱신
+    if major_models:
+        prev_major = {m.name.lower(): m.rank for m in existing.major_models}
+        existing.major_models = [
+            MajorModelEntry(
+                rank=rank,
+                name=m["name"],
+                provider=m["provider"],
+                overall=float(m["overall"]),
+                coding=float(m["coding"]),
+                reasoning=float(m["reasoning"]),
+                context_window=m.get("context_window"),
+                delta=_compute_delta(m["name"], rank, prev_major),  # type: ignore[arg-type]
+                url=m.get("url"),
+            )
+            for rank, m in enumerate(major_models[:5], start=1)
+        ]
+
+    # 3) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM TOP 5 갱신
+    if onprem_models:
+        prev_onprem = {m.name.lower(): m.rank for m in existing.onprem_models}
+        existing.onprem_models = [
+            OnPremModelEntry(
+                rank=rank,
+                name=m["name"],
+                org=m["org"],
+                license=m["license"],
+                params_vram=m["params_vram"],
+                vllm_supported=bool(m.get("vllm_supported", True)),
+                likes=int(m.get("likes") or 0),
+                delta=_compute_delta(m["name"], rank, prev_onprem),  # type: ignore[arg-type]
+                url=m.get("url"),
+            )
+            for rank, m in enumerate(onprem_models[:5], start=1)
+        ]
 
     existing.updated_at = today
     existing.week_label = _format_week_label(today)
-    existing.source = "GitHub Search API · HuggingFace Trending Models"
+    existing.source = "GitHub Search API · OpenRouter · HuggingFace Official Orgs"
     write_json(radar_path, existing.model_dump())
     logger.info("Updated radar.json for %s", today)
     return radar_path

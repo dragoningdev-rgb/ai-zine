@@ -126,22 +126,30 @@ class GithubTrendingRepo(BaseModel):
     url: str = Field(..., min_length=1)
 
 
-# 판도 탭의 부문별 모델 순위 1건 구조
-class ModelRankEntry(BaseModel):
+# 판도 탭 — 1) 메이저 빅테크 플래그십 모델 비교 항목
+class MajorModelEntry(BaseModel):
     rank: int = Field(..., ge=1, le=10)
     name: str = Field(..., min_length=1)
     provider: str = Field(..., min_length=1)
-    score: float = Field(..., ge=0)
+    overall: float = Field(..., ge=0)
+    coding: float = Field(..., ge=0)
+    reasoning: float = Field(..., ge=0)
+    context_window: Optional[str] = None
     delta: Union[int, Literal["NEW"]] = 0
-    metric_label: Optional[str] = None
     url: Optional[str] = None
 
 
-# 코딩·추론·로컬 3개 부문 모델 순위 묶음
-class ModelRankings(BaseModel):
-    coding: List[ModelRankEntry] = Field(default_factory=list)
-    reasoning: List[ModelRankEntry] = Field(default_factory=list)
-    local: List[ModelRankEntry] = Field(default_factory=list)
+# 판도 탭 — 2) 사내 폐쇄망 반입 가능 공식 오픈웨이트 LLM 항목
+class OnPremModelEntry(BaseModel):
+    rank: int = Field(..., ge=1, le=10)
+    name: str = Field(..., min_length=1)
+    org: str = Field(..., min_length=1)
+    license: str = Field(..., min_length=1)
+    params_vram: str = Field(..., min_length=1)
+    vllm_supported: bool = True
+    likes: int = Field(default=0, ge=0)
+    delta: Union[int, Literal["NEW"]] = 0
+    url: Optional[str] = None
 
 
 # 주간 판도 데이터 전체 구조 (radar.json)
@@ -150,4 +158,5 @@ class RadarData(BaseModel):
     week_label: Optional[str] = None
     source: Optional[str] = None
     github_trending_top5: List[GithubTrendingRepo] = Field(default_factory=list)
-    model_rankings: ModelRankings
+    major_models: List[MajorModelEntry] = Field(default_factory=list)
+    onprem_models: List[OnPremModelEntry] = Field(default_factory=list)

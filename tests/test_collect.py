@@ -9,10 +9,12 @@ from pipeline.collect import (
     RawItem,
     deduplicate_items,
     extract_meta_description,
-    fetch_hf_trending_models,
     fetch_hn_top_comments,
+    fetch_major_bigtech_models,
+    fetch_onprem_open_llms,
     fetch_rss_source,
     is_ai_related,
+    is_official_onprem_model,
     is_recent,
     normalize_url,
     title_similarity,
@@ -177,19 +179,47 @@ def test_fetch_hn_top_comments_filters_deleted_and_strips_html() -> None:
     assert "cut our monthly API spend by 70%" in comments[0]
 
 
-def test_fetch_hf_trending_models_classifies_categories() -> None:
+def test_is_official_onprem_model_filters_gguf_abliterated_and_unofficial() -> None:
+    assert is_official_onprem_model("Qwen/Qwen2.5-Coder-32B-Instruct", ["license:apache-2.0"])
+    assert is_official_onprem_model("LGAI-EXAONE/EXAONE-3.5-32B-Instruct", [])
+    assert not is_official_onprem_model("bartowski/Qwen2.5-32B-GGUF", ["gguf"])
+    assert not is_official_onprem_model("Qwen/Qwen2.5-32B-Instruct-GGUF", [])
+    assert not is_official_onprem_model("deepseek-ai/DeepSeek-R1-abliterated", [])
+    assert not is_official_onprem_model("randomuser/uncensored-merge-7B", [])
+
+
+def test_fetch_onprem_open_llms_keeps_only_official_models() -> None:
     mock_resp = MagicMock()
     mock_resp.raise_for_status.return_value = None
     mock_resp.json.return_value = [
-        {"id": "Qwen/Qwen2.5-Coder-32B-Instruct", "likes": 4100, "trendingScore": 410, "tags": ["text-generation"]},
-        {"id": "deepseek-ai/DeepSeek-R1", "likes": 12000, "trendingScore": 980, "tags": ["reasoning"]},
-        {"id": "google/gemma-3-27b-it", "likes": 4800, "trendingScore": 540, "tags": ["gguf"]},
+        {"id": "randomuser/Model-GGUF-abliterated", "likes": 99999, "tags": ["gguf"]},
+        {"id": "Qwen/Qwen2.5-Coder-32B-Instruct", "likes": 4100, "tags": ["license:apache-2.0"]},
+        {"id": "LGAI-EXAONE/EXAONE-3.5-32B-Instruct", "likes": 1200, "tags": ["license:exaone"]},
     ]
     mock_session = MagicMock()
     mock_session.get.return_value = mock_resp
 
-    buckets = fetch_hf_trending_models(session=mock_session)
-    assert buckets["coding"][0]["name"] == "Qwen2.5-Coder-32B-Instruct"
-    assert buckets["reasoning"][0]["name"] == "DeepSeek-R1"
-    assert buckets["local"][0]["name"] == "gemma-3-27b-it"
-    assert buckets["coding"][0]["url"].startswith("https://huggingface.co/")
+    models = fetch_onprem_open_llms(session=mock_session)
+    assert len(models) == 2
+    assert models[0]["name"] == "Qwen2.5-Coder-32B-Instruct"
+    assert models[0]["license"] == "Apache 2.0"
+    assert "32B" in models[0]["params_vram"]
+    assert models[0]["vllm_supported"] is True
+
+
+def test_fetch_major_bigtech_models_parses_openrouter() -> None:
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.json.return_value = {
+        "data": [
+            {"id": "google/gemini-2.5-pro", "context_length": 1000000},
+            {"id": "anthropic/claude-sonnet-4", "context_length": 200000},
+        ]
+    }
+    mock_session = MagicMock()
+    mock_session.get.return_value = mock_resp
+
+    majors = fetch_major_bigtech_models(session=mock_session)
+    assert len(majors) == 5
+    assert majors[0]["provider"] == "Google"
+    assert majors[0]["context_window"] == "1M"

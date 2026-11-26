@@ -11,8 +11,9 @@ DATA_DIR = WEB_DIR / "data"
 EDITIONS_DIR = DATA_DIR / "editions"
 
 # HTTP / Networking
-REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "12"))
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "15"))
 ARTICLE_META_TIMEOUT = int(os.getenv("ARTICLE_META_TIMEOUT", "5"))
+LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "60"))
 USER_AGENT = "MorningAIZine/1.0 (+https://github.com/morning-ai-zine)"
 MAX_WORKERS = 6
 LOOKBACK_HOURS = 24
@@ -55,7 +56,20 @@ HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{item_id}.json"
 
 HF_DAILY_PAPERS_URL = "https://huggingface.co/api/daily_papers"
 HF_TRENDING_MODELS_URL = "https://huggingface.co/api/models"
+OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 GITHUB_SEARCH_REPOS_URL = "https://api.github.com/search/repositories"
+
+# 사내 폐쇄망(vLLM/SGLang) 반입 가능한 공식 오픈웨이트 LLM 오가니제이션 화이트리스트
+OFFICIAL_OPEN_LLM_ORGS = (
+    "Qwen",
+    "deepseek-ai",
+    "meta-llama",
+    "google",
+    "LGAI-EXAONE",
+    "mistralai",
+    "microsoft",
+    "nvidia",
+)
 
 # AI / LLM relevance filter keywords (case-insensitive)
 AI_KEYWORDS = (
@@ -108,10 +122,9 @@ AI_KEYWORDS = (
     "오픈웨이트",
 )
 
-# LLM Editor Configuration (Gemini Free Tier / OpenAI-compatible fallback)
-# 무료 티어에서 안정적으로 동작하는 최신 Gemini Flash 모델 기본값
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+# LLM Editor Configuration (Gemini 3.8 Flash 유지 / OpenAI 호환 폴백)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()

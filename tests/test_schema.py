@@ -54,9 +54,8 @@ def test_radar_json_schema() -> None:
     payload = json.loads(radar_path.read_text(encoding="utf-8"))
     radar = RadarData.model_validate(payload)
     assert len(radar.github_trending_top5) == 5
-    assert len(radar.model_rankings.coding) >= 1
-    assert len(radar.model_rankings.reasoning) >= 1
-    assert len(radar.model_rankings.local) >= 1
+    assert len(radar.major_models) == 5
+    assert len(radar.onprem_models) == 5
 
 
 def test_invalid_edition_rejected_by_schema() -> None:
@@ -140,7 +139,7 @@ def test_gemini_http_error_logs_status_code_and_falls_back(caplog: pytest.LogCap
 
 
 def test_update_radar_computes_real_deltas(tmp_path: Path) -> None:
-    """Verify update_radar writes real HF models and computes week-over-week rank deltas."""
+    """Verify update_radar writes major/on-prem models and computes week-over-week rank deltas."""
     from pipeline.build_data import update_radar
     from pipeline.collect import RawItem
 
@@ -148,26 +147,21 @@ def test_update_radar_computes_real_deltas(tmp_path: Path) -> None:
         RawItem(title=f"org/repo-{i}", url=f"https://github.com/org/repo-{i}", source="GitHub Trending", kind="tool", summary=f"AI tool {i}", score=1000 - i * 10, extra={"repo_name": f"org/repo-{i}", "stars": 1000 - i * 10, "language": "Python"})
         for i in range(1, 6)
     ]
-    hf_week1 = {
-        "coding": [{"name": "ModelA", "provider": "OrgA", "score": 300, "metric_label": "♥ 300", "url": "https://huggingface.co/OrgA/ModelA"}],
-        "reasoning": [{"name": "ModelR", "provider": "OrgR", "score": 500, "metric_label": "♥ 500", "url": "https://huggingface.co/OrgR/ModelR"}],
-        "local": [{"name": "ModelL", "provider": "OrgL", "score": 200, "metric_label": "♥ 200", "url": "https://huggingface.co/OrgL/ModelL"}],
-    }
-    update_radar(gh_items, hf_models=hf_week1, date_str="2026-11-23", data_dir=tmp_path)
+    major_w1 = [{"name": "ModelA", "provider": "Google", "overall": 91.0, "coding": 90.0, "reasoning": 92.0, "context_window": "1M"}]
+    onprem_w1 = [{"name": "Qwen-32B", "org": "Qwen", "license": "Apache 2.0", "params_vram": "32B · VRAM ~64GB", "vllm_supported": True, "likes": 4000}]
+    update_radar(gh_items, major_models=major_w1, onprem_models=onprem_w1, date_str="2026-11-23", data_dir=tmp_path)
 
-    hf_week2 = {
-        "coding": [
-            {"name": "ModelB", "provider": "OrgB", "score": 400, "metric_label": "♥ 400", "url": "https://huggingface.co/OrgB/ModelB"},
-            {"name": "ModelA", "provider": "OrgA", "score": 320, "metric_label": "♥ 320", "url": "https://huggingface.co/OrgA/ModelA"},
-        ],
-        "reasoning": hf_week1["reasoning"],
-        "local": hf_week1["local"],
-    }
-    radar_path = update_radar(gh_items, hf_models=hf_week2, date_str="2026-11-30", data_dir=tmp_path)
+    major_w2 = [
+        {"name": "ModelB", "provider": "Anthropic", "overall": 92.0, "coding": 93.0, "reasoning": 91.0, "context_window": "200K"},
+        {"name": "ModelA", "provider": "Google", "overall": 91.0, "coding": 90.0, "reasoning": 92.0, "context_window": "1M"},
+    ]
+    radar_path = update_radar(gh_items, major_models=major_w2, onprem_models=onprem_w1, date_str="2026-11-30", data_dir=tmp_path)
     assert radar_path is not None
 
     radar = RadarData.model_validate(json.loads(radar_path.read_text(encoding="utf-8")))
-    assert radar.model_rankings.coding[0].name == "ModelB"
-    assert radar.model_rankings.coding[0].delta == "NEW"
-    assert radar.model_rankings.coding[1].name == "ModelA"
-    assert radar.model_rankings.coding[1].delta == -1
+    assert radar.major_models[0].name == "ModelB"
+    assert radar.major_models[0].delta == "NEW"
+    assert radar.major_models[1].name == "ModelA"
+    assert radar.major_models[1].delta == -1
+    assert radar.onprem_models[0].license == "Apache 2.0"
+    assert radar.onprem_models[0].vllm_supported is True

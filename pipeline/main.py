@@ -15,7 +15,12 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from pipeline.build_data import compute_next_issue_no, publish_edition, update_radar
-from pipeline.collect import collect_all, fetch_github_trending_ai, fetch_hf_trending_models
+from pipeline.collect import (
+    collect_all,
+    fetch_github_trending_ai,
+    fetch_major_bigtech_models,
+    fetch_onprem_open_llms,
+)
 from pipeline.config import DATA_DIR
 from pipeline.curate import curate_edition
 from pipeline.schema import Edition
@@ -91,8 +96,15 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.update_radar and not args.offline:
         gh_items = fetch_github_trending_ai()
-        hf_models = fetch_hf_trending_models()
-        update_radar(gh_items, hf_models=hf_models, date_str=date_str, data_dir=DATA_DIR)
+        major_models = fetch_major_bigtech_models()
+        onprem_models = fetch_onprem_open_llms()
+        update_radar(
+            gh_items,
+            major_models=major_models,
+            onprem_models=onprem_models,
+            date_str=date_str,
+            data_dir=DATA_DIR,
+        )
 
     logger.info("Pipeline completed successfully.")
     return 0
