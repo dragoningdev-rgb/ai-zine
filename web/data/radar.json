@@ -6,45 +6,75 @@
     {
       "rank": 1,
       "name": "morluto/rea",
-      "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
-      "detail_summary": null,
-      "weekly_stars": 478696,
+      "description": "에이전트로 앱 동작부터 네이티브 바이너리까지 역공학",
+      "detail_summary": {
+        "what_how": "다양한 애플리케이션과 바이너리, 런타임 동작을 단일 모델 컨텍스트 프로토콜(MCP) 기반 에이전트로 분석하고 역설계하는 도구입니다.",
+        "reactions": "AI를 활용해 복잡한 레거시 바이너리나 난독화된 코드를 분석하는 속도가 혁신적으로 빨라졌다는 찬사가 이어지는 한편, 벤더들이 소스 코드를 감추고 서버사이드 로직을 강화하는 역효과를 낳을 것이라는 우려도 공존합니다.",
+        "use_case": "소스 코드 없이 레거시 바이너리를 분석하거나 타사 앱의 내부 API 동작 방식을 파악해야 할 때 활용하기 좋습니다.",
+        "what": null,
+        "how": null
+      },
+      "weekly_stars": 478717,
       "language": "TypeScript",
       "url": "https://github.com/morluto/rea"
     },
     {
       "rank": 2,
       "name": "openclaw/openclaw",
-      "description": "The AI that really does things. Any OS. Any Platform. The lobster way. 🦞",
-      "detail_summary": null,
-      "weekly_stars": 395244,
+      "description": "로컬 기기와 주요 채팅 플랫폼을 연결하는 오픈소스 AI 어시스턴트",
+      "detail_summary": {
+        "what_how": "사용자의 로컬 컴퓨터에서 구동되며 Discord, Slack, 텔레그램 등 익숙한 채팅 채널을 통해 다양한 LLM 에이전트와 소통할 수 있는 통합 게이트웨이 플랫폼입니다.",
+        "reactions": "개인 기기에서 자유롭게 연동된다는 점에 열광하는 사용자가 있는 반면, 민감한 권한을 요구하는 구조적 특성 때문에 보안 사고나 무분별한 에이전트 남발로 이어질 수 있다는 강한 경계심도 존재합니다.",
+        "use_case": "여러 메신저 플랫폼에서 개인 작업이나 팀 협업을 돕는 상시 구동형 맞춤형 AI 비서를 구축할 때 적합합니다.",
+        "what": null,
+        "how": null
+      },
+      "weekly_stars": 395247,
       "language": "TypeScript",
       "url": "https://github.com/openclaw/openclaw"
     },
     {
       "rank": 3,
       "name": "mattpocock/skills",
-      "description": "Skills for Real Engineers. Straight from my .agents directory.",
-      "detail_summary": null,
-      "weekly_stars": 333023,
+      "description": "실무 엔지니어가 매일 쓰는 에이전트용 실전 스킬 모음",
+      "detail_summary": {
+        "what_how": "과도하게 프로세스를 통제하는 거대한 프레임워크 대신, 개발자가 직접 수정하고 조합할 수 있는 가볍고 실용적인 에이전트 스킬들을 제공합니다.",
+        "reactions": "Vibe 코딩처럼 겉멋만 번지르르한 방식과 달리 수십 년간의 실무 경험에 기반해 작고 유연하게 조합할 수 있어 진짜 엔지니어링에 유용하다는 호평을 받고 있습니다.",
+        "use_case": "Claude Code나 GitHub Copilot 등 코딩 에이전트의 실무 생산성을 높이고 싶을 때 프로젝트에 플러그인처럼 얹어 사용하기 좋습니다.",
+        "what": null,
+        "how": null
+      },
+      "weekly_stars": 333031,
       "language": "Shell",
       "url": "https://github.com/mattpocock/skills"
     },
     {
       "rank": 4,
       "name": "obra/superpowers",
-      "description": "An agentic skills framework & software development methodology that works.",
-      "detail_summary": null,
-      "weekly_stars": 326772,
+      "description": "에이전트가 주도하는 실전형 소프트웨어 개발 방법론 프레임워크",
+      "detail_summary": {
+        "what_how": "코딩 에이전트가 무작정 코드를 작성하기 전 명세를 도출하고, 설계 승인 후 철저한 TDD와 서브에이전트 기반 리뷰를 거쳐 개발을 진행하도록 강제하는 방법론입니다.",
+        "reactions": "대다수의 겉핥기식 AI 에이전트 도구들과 달리 실제 개발 프로세스를 탄탄하게 잡아주는 실질적인 프레임워크라며 개발자들 사이에서 큰 주목을 받고 있습니다.",
+        "use_case": "AI 코딩 에이전트에게 체계적인 기획, 테스트 주도 개발(TDD), 코드 리뷰 루틴을 강제하고 싶을 때 도입하면 좋습니다.",
+        "what": null,
+        "how": null
+      },
+      "weekly_stars": 326779,
       "language": "Shell",
       "url": "https://github.com/obra/superpowers"
     },
     {
       "rank": 5,
       "name": "affaan-m/ECC",
-      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
-      "detail_summary": null,
-      "weekly_stars": 310815,
+      "description": "에이전트의 성능 극대화를 위한 체계적인 엔지니어링 및 최적화 시스템",
+      "detail_summary": {
+        "what_how": "계획, 테스트, 구현, 리뷰, 검증, 기억의 파이프라인을 거쳐 에이전트가 반복되는 성공 경험을 재사용 가능한 스킬과 지침으로 학습하도록 돕는 성능 최적화 하니스입니다.",
+        "reactions": "단순히 코드를 생성하는 수준을 넘어 에이전트가 스스로 검증하고 학습하는 고도화된 엔지니어링 시스템을 제공하여 실무 개발 가속화에 큰 도움이 된다는 평가를 받고 있습니다.",
+        "use_case": "다양한 코딩 에이전트의 작업 정확도와 코드 품질을 체계적인 피드백 루프를 통해 끌어올리고 싶을 때 유용합니다.",
+        "what": null,
+        "how": null
+      },
+      "weekly_stars": 310820,
       "language": "JavaScript",
       "url": "https://github.com/affaan-m/ECC"
     }
@@ -169,8 +199,8 @@
       "license": "Apache 2.0",
       "params_vram": "27B · VRAM ~54GB",
       "vllm_supported": true,
-      "trending_score": 138.5,
-      "likes": 21806,
+      "trending_score": 137.5,
+      "likes": 21807,
       "delta": 0,
       "url": "https://huggingface.co/Qwen/Qwen3.8-27B"
     },
@@ -193,8 +223,8 @@
       "license": "Apache 2.0",
       "params_vram": "35B · VRAM ~70GB",
       "vllm_supported": true,
-      "trending_score": 22.0,
-      "likes": 3186,
+      "trending_score": 23.0,
+      "likes": 3187,
       "delta": 0,
       "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B"
     },
@@ -217,7 +247,7 @@
       "license": "MIT",
       "params_vram": "671B MoE · FP8 ~670GB",
       "vllm_supported": true,
-      "trending_score": 19.5,
+      "trending_score": 18.5,
       "likes": 5107,
       "delta": 0,
       "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash"

@@ -6,78 +6,56 @@
     "hero_news": {
       "id": "20261126-n1",
       "category": "BIG NEWS",
-      "title": "PenGPT: A Generative Transformer for Handwriting and Sketch…",
+      "title": "1인 조직의 시대: AI 에이전트로 연구기관처럼 일하기",
       "summary": [
-        "A small transformer that writes and sketches from text. The effort was 80% data, 15% speed and 5% architectur…",
-        "The most interesting part to me is this mention of the Bitter Lesson [1] \"The results are interesting and the…",
-        "LLM API 폴백 모드로 생성된 요약이며, 상세 기술 배경은 원문 링크에서 확인할 수 있습니다."
+        "AI 에이전트와 지식 생산 시스템을 결합해 혼자서도 대규모 정보 처리와 콘텐츠 발행이 가능한 1인 조직 운영 모델이 부상하고 있습니다.",
+        "전문가는 직접 결과물을 만드는 대신, AI가 수행할 조사·사실 확인·글쓰기의 규칙과 기준을 설계하는 '시스템 설계자'로 역할이 전환됩니다.",
+        "실제로 매일 2만 5천 건의 뉴스를 분석해 외교 전문을 발행하는 사례처럼, 반복 가능한 시스템 구축이 생산성의 핵심이 되었습니다."
       ],
-      "takeaway": null,
-      "source": "Hacker News",
-      "url": "https://greydanus.github.io/2026/11/12/pengpt"
+      "takeaway": "단순 반복 업무는 AI에 맡기고, 당신은 시스템의 규칙을 설계하는 '아키텍트'가 되어야 합니다.",
+      "source": "GeekNews",
+      "url": "https://news.hada.io/topic?id=37871"
     },
     "hot_issue": {
       "id": "20261126-n2",
-      "title": "Jev is probably Qwen3.5-35B-A3B",
+      "title": "기능 발견의 종말: 버튼 대신 프롬프트로 소프트웨어 조작",
       "summary": [
-        "TypeSafe doesn't disclose Jev's backbone. Self-identification, tokenizer, and throughput tests all point to Q…",
-        "Hacker News에서 추천 277·댓글 76건과 함께 실전 적용 논의가 이어지고 있습니다."
+        "사용자가 기능을 직접 찾아 헤매는 방식에서, AI가 사용자의 의도를 파악해 필요한 기능을 API와 MCP로 즉시 호출하는 방식으로 제품 사용 경험이 바뀌고 있습니다.",
+        "소프트웨어의 복잡성을 기능 추가로 해결하던 시대는 끝났으며, 이제는 AI 에이전트가 소프트웨어를 조작하는 주체가 되어 제품의 단순화를 이끌고 있습니다."
       ],
-      "takeaway": null,
-      "source": "Hacker News",
-      "url": "https://modaic.dev/blog/latency-doesnt-lie"
+      "takeaway": "제품 기획 시 '어떤 버튼을 만들까'보다 'AI가 어떤 기능을 호출하게 할까'를 고민해야 할 때입니다.",
+      "source": "GeekNews",
+      "url": "https://news.hada.io/topic?id=37870"
     },
     "term_of_day": {
       "id": "20261126-t1",
       "term": "MCP (Model Context Protocol)",
-      "analogy": "AI 모델에 외부 도구와 사내 데이터를 꽂아 쓰는 USB-C 표준 포트",
-      "office_line": "회의실 멘트: 앞으로 사내 시스템 연동은 개별 플러그인 대신 MCP 규격으로 통일하는 추세입니다."
+      "analogy": "AI가 외부 세상과 대화하기 위해 사용하는 '만능 통역기이자 연결 어댑터'입니다.",
+      "office_line": "회의실 멘트: 우리 제품의 기능을 AI가 직접 호출할 수 있게 MCP 연동을 우선순위로 검토해 보시죠."
     },
     "daily_pick": {
       "id": "20261126-p1",
       "type": "tool",
-      "title": "NousResearch/hermes-agent: The agent that grows with you",
-      "description": "The agent that grows with you",
-      "copy_text": "git clone https://github.com/NousResearch/hermes-agent.git",
-      "url": "https://github.com/NousResearch/hermes-agent"
+      "title": "Firecrawl: 에이전트를 위한 데이터 인프라",
+      "description": "웹 검색, 스크래핑, 데이터 추출을 단 하나의 API로 통합하여 AI 에이전트가 더 똑똑하게 정보를 수집하도록 돕는 도구입니다.",
+      "copy_text": "npm install firecrawl-sdk",
+      "url": "https://github.com/firecrawl/firecrawl"
     },
     "lunch_talk": {
-      "quote": "AI 도구가 넘쳐날수록 팀의 차이는 '무슨 모델을 쓰느냐'가 아니라 '우리 업무용 평가셋 30개를 갖고 있느냐'에서 갈립니다."
+      "quote": "이제는 AI가 쓴 글인지 아닌지가 중요한 게 아니라, AI를 활용해 얼마나 더 깊고 넓은 통찰을 시스템적으로 뽑아내느냐가 실력의 척도입니다."
     }
   },
   "buzz": [
     {
       "id": "20261126-b1",
-      "tag": "커뮤니티 논쟁",
-      "title": "The New York Times warns photographers not to update Photoshop over A…",
-      "context": "The NYT doesn’t want AI metadata inadvertently added to its photos.",
-      "pro_side": "I had a NYT photographer take my picture at my home earlier this year (for a story about Moltbook, oddly enough). At on…",
-      "con_side": "I work in the creative tools space. This is one of the biggest issues right now. It's nearly impossible to separate \"th…",
-      "comment_count": 246,
+      "tag": "논쟁",
+      "title": "뉴욕타임스(NYT)의 포토샵 업데이트 금지령",
+      "context": "NYT가 사진기자들에게 AI 기능이 포함된 최신 포토샵 업데이트를 하지 말라고 경고했습니다. AI 메타데이터가 사진의 진실성을 훼손할 것을 우려한 조치입니다.",
+      "pro_side": "사진은 있는 그대로의 기록이어야 하며, AI가 개입된 이미지는 저널리즘의 신뢰성을 근본적으로 무너뜨리는 위험 요소입니다.",
+      "con_side": "단순한 색감 보정이나 레이아웃 개선조차 AI 기능으로 처리되는 시대에, 무조건적인 업데이트 금지는 기술적 퇴보이자 실무 효율을 저해하는 과도한 규제입니다.",
+      "comment_count": 251,
       "source": "Hacker News",
       "url": "https://theverge.com/ai-artificial-intelligence/1041227/the-new-york-times-warns-photographers-not-to-update-photoshop-over-ai-features"
-    },
-    {
-      "id": "20261126-b2",
-      "tag": "커뮤니티 논쟁",
-      "title": "Much shorter version of GRH Lean verification from Anthropic",
-      "context": "A short Lean 4 proof of the Generalized Riemann Hypothesis - lsernau/grh-lean",
-      "pro_side": "Nice! The more readable 300kloc proof even has a clear \"known math\" vs \"new math\" split and human-readable documentatio…",
-      "con_side": "From ~17M lines to just ~76k lines, a 99.56% reduction.",
-      "comment_count": 180,
-      "source": "Hacker News",
-      "url": "https://github.com/lsernau/grh-lean"
-    },
-    {
-      "id": "20261126-b3",
-      "tag": "커뮤니티 논쟁",
-      "title": "GPT-6 models demonstrate intrinsic protein-design capabilities",
-      "context": "GPT-6 models design protein structures and sequences using reasoning and code. Lab tests found evidence of binding across five targets.",
-      "pro_side": "> We gave GPT‑6.2 the three-dimensional structures of five target proteins and marked where we wanted a minibinder to a…",
-      "con_side": "> To turn GPT‑6.2’s three-dimensional designs into proteins we could test in the lab, we needed amino acid sequences th…",
-      "comment_count": 97,
-      "source": "Hacker News",
-      "url": "https://openai.com/index/gpt-6-models-demonstrate-intrinsic-protein-design-capabilities"
     }
   ]
 }

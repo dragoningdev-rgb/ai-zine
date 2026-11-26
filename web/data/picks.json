@@ -6,11 +6,11 @@
       "date": "2026-11-26",
       "tag": "#툴",
       "type": "tool",
-      "title": "NousResearch/hermes-agent: The agent that grows with you",
-      "description": "The agent that grows with you",
-      "copy_text": "git clone https://github.com/NousResearch/hermes-agent.git",
+      "title": "Firecrawl: 에이전트를 위한 데이터 인프라",
+      "description": "웹 검색, 스크래핑, 데이터 추출을 단 하나의 API로 통합하여 AI 에이전트가 더 똑똑하게 정보를 수집하도록 돕는 도구입니다.",
+      "copy_text": "npm install firecrawl-sdk",
       "office_line": null,
-      "url": "https://github.com/NousResearch/hermes-agent"
+      "url": "https://github.com/firecrawl/firecrawl"
     },
     {
       "id": "20261126-t1",
@@ -18,9 +18,9 @@
       "tag": "#신조어",
       "type": "term",
       "title": "MCP (Model Context Protocol)",
-      "description": "AI 모델에 외부 도구와 사내 데이터를 꽂아 쓰는 USB-C 표준 포트",
+      "description": "AI가 외부 세상과 대화하기 위해 사용하는 '만능 통역기이자 연결 어댑터'입니다.",
       "copy_text": null,
-      "office_line": "회의실 멘트: 앞으로 사내 시스템 연동은 개별 플러그인 대신 MCP 규격으로 통일하는 추세입니다.",
+      "office_line": "회의실 멘트: 우리 제품의 기능을 AI가 직접 호출할 수 있게 MCP 연동을 우선순위로 검토해 보시죠.",
       "url": null
     },
     {
