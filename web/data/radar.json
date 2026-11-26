@@ -6,40 +6,40 @@
     {
       "rank": 1,
       "name": "morluto/rea",
-      "description": "앱 동작부터 바이너리까지, AI 에이전트로 뭐든 리버스 엔지니어링",
-      "weekly_stars": 478657,
+      "description": "Reverse engineer anything with agents, from app behavior down to native binaries.",
+      "weekly_stars": 478679,
       "language": "TypeScript",
       "url": "https://github.com/morluto/rea"
     },
     {
       "rank": 2,
       "name": "openclaw/openclaw",
-      "description": "어떤 OS든 가리지 않고 진짜 행동하는 랍스터형 자율 AI",
-      "weekly_stars": 395237,
+      "description": "The AI that really does things. Any OS. Any Platform. The lobster way. 🦞",
+      "weekly_stars": 395240,
       "language": "TypeScript",
       "url": "https://github.com/openclaw/openclaw"
     },
     {
       "rank": 3,
       "name": "mattpocock/skills",
-      "description": "실전 엔지니어를 위한 검증된 AI 에이전트 스킬 모음집",
-      "weekly_stars": 333007,
+      "description": "Skills for Real Engineers. Straight from my .agents directory.",
+      "weekly_stars": 333019,
       "language": "Shell",
       "url": "https://github.com/mattpocock/skills"
     },
     {
       "rank": 4,
       "name": "obra/superpowers",
-      "description": "실무에 바로 쓰는 AI 에이전트 스킬 프레임워크와 개발 방법론",
-      "weekly_stars": 326744,
+      "description": "An agentic skills framework & software development methodology that works.",
+      "weekly_stars": 326765,
       "language": "Shell",
       "url": "https://github.com/obra/superpowers"
     },
     {
       "rank": 5,
       "name": "affaan-m/ECC",
-      "description": "코딩 AI 에이전트 성능을 극대화하는 하네스 최적화 시스템",
-      "weekly_stars": 310796,
+      "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
+      "weekly_stars": 310806,
       "language": "JavaScript",
       "url": "https://github.com/affaan-m/ECC"
     }
@@ -53,7 +53,7 @@
       "input_price": "$3.00",
       "output_price": "$15.0",
       "released_at": "2026-11-18",
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://openrouter.ai/google/gemini-4-neon"
     },
     {
@@ -64,7 +64,7 @@
       "input_price": "$8.00",
       "output_price": "$40.0",
       "released_at": "2026-11-17",
-      "delta": -1,
+      "delta": 0,
       "url": "https://openrouter.ai/openai/gpt-6.2-astra-pro"
     },
     {
@@ -75,7 +75,7 @@
       "input_price": "$8.00",
       "output_price": "$40.0",
       "released_at": "2026-11-09",
-      "delta": -1,
+      "delta": 0,
       "url": "https://openrouter.ai/anthropic/claude-fable-5.2"
     },
     {
@@ -86,7 +86,7 @@
       "input_price": "$0.15",
       "output_price": "$0.60",
       "released_at": "2026-10-17",
-      "delta": -1,
+      "delta": 0,
       "url": "https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017"
     },
     {
@@ -97,7 +97,7 @@
       "input_price": "$2.00",
       "output_price": "$6.00",
       "released_at": "2026-09-21",
-      "delta": -1,
+      "delta": 0,
       "url": "https://openrouter.ai/x-ai/grok-4.7"
     }
   ],
@@ -109,9 +109,9 @@
       "license": "Apache 2.0",
       "params_vram": "27B · VRAM ~54GB",
       "vllm_supported": true,
-      "trending_score": 138.0,
-      "likes": 21805,
-      "delta": "NEW",
+      "trending_score": 138.5,
+      "likes": 21806,
+      "delta": 0,
       "url": "https://huggingface.co/Qwen/Qwen3.8-27B"
     },
     {
@@ -123,7 +123,7 @@
       "vllm_supported": true,
       "trending_score": 77.0,
       "likes": 6704,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017"
     },
     {
@@ -135,7 +135,7 @@
       "vllm_supported": true,
       "trending_score": 21.0,
       "likes": 1814,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/google/gemma-4-26B-A4B-it"
     },
     {
@@ -147,7 +147,7 @@
       "vllm_supported": true,
       "trending_score": 15.0,
       "likes": 1684,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/mistralai/Mistral-Large-4-1T-A52B"
     },
     {
@@ -159,7 +159,7 @@
       "vllm_supported": true,
       "trending_score": 8.0,
       "likes": 145,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-BF16"
     },
     {
@@ -171,7 +171,7 @@
       "vllm_supported": true,
       "trending_score": 5.0,
       "likes": 3233,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct"
     },
     {
@@ -183,7 +183,7 @@
       "vllm_supported": true,
       "trending_score": 2.0,
       "likes": 301,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/microsoft/Fara1.5-27B"
     },
     {
@@ -195,7 +195,7 @@
       "vllm_supported": true,
       "trending_score": 0.5,
       "likes": 580,
-      "delta": "NEW",
+      "delta": 0,
       "url": "https://huggingface.co/LGAI-EXAONE/K-EXAONE-236B-A23B"
     }
   ]

@@ -6,21 +6,21 @@
       "date": "2026-11-26",
       "tag": "#툴",
       "type": "tool",
-      "title": "Ponytail — 게으른 시니어 개발자처럼 코드 생성을 억제하는 AI 에이전트 프레임워크",
-      "description": "최고의 코드는 작성하지 않은 코드라는 철학으로, 불필요한 보일러플레이트와 신규 파일 생성을 방지하고 기존 라이브러리 재사용을 유도하는 경량 에이전트 도구입니다.",
-      "copy_text": "git clone https://github.com/DietrichGebert/ponytail && cd ponytail && pip install -r requirements.txt",
+      "title": "NousResearch/hermes-agent: The agent that grows with you",
+      "description": "The agent that grows with you",
+      "copy_text": "git clone https://github.com/NousResearch/hermes-agent.git",
       "office_line": null,
-      "url": "https://github.com/DietrichGebert/ponytail"
+      "url": "https://github.com/NousResearch/hermes-agent"
     },
     {
       "id": "20261126-t1",
       "date": "2026-11-26",
       "tag": "#신조어",
       "type": "term",
-      "title": "쓰디쓴 교훈 (The Bitter Lesson)",
-      "description": "정교한 비법 양념을 연구하는 대신 가장 신선한 원재료를 트럭 단위로 들이붓고 대형 화덕으로 밀어붙여 압도적 맛을 내는 전략",
+      "title": "MCP (Model Context Protocol)",
+      "description": "AI 모델에 외부 도구와 사내 데이터를 꽂아 쓰는 USB-C 표준 포트",
       "copy_text": null,
-      "office_line": "회의실 멘트: 복잡한 규칙 기반 파이프라인 짜느라 리소스 쓰지 말고, 데이터 정제 자동화랑 컴퓨팅 확장에 집중하는 게 장기적으로는 이깁니다.",
+      "office_line": "회의실 멘트: 앞으로 사내 시스템 연동은 개별 플러그인 대신 MCP 규격으로 통일하는 추세입니다.",
       "url": null
     },
     {
