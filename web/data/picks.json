@@ -1,6 +1,28 @@
 {
-  "updated_at": "2026-11-27",
+  "updated_at": "2026-11-28",
   "items": [
+    {
+      "id": "20261128-p1",
+      "date": "2026-11-28",
+      "tag": "#툴",
+      "type": "tool",
+      "title": "n8n (Native AI Workflow Platform)",
+      "description": "비주얼 빌더와 커스텀 코드를 결합해 400개 이상의 앱 통합과 네이티브 AI 워크플로우를 구축할 수 있는 오픈소스 자동화 플랫폼입니다.",
+      "copy_text": "npx n8n@latest",
+      "office_line": null,
+      "url": "https://github.com/n8n-io/n8n"
+    },
+    {
+      "id": "20261128-t1",
+      "date": "2026-11-28",
+      "tag": "#신조어",
+      "type": "term",
+      "title": "MCP (Model Context Protocol)",
+      "description": "AI 에이전트가 외부 데이터베이스나 사내 시스템과 안전하게 대화할 수 있도록 꽂아 쓰는 '만능 표준 USB 포트'입니다.",
+      "copy_text": null,
+      "office_line": "회의실 멘트: \"구글이 MCP 규격을 강제하기 시작했으니, 우리 사내 에이전트 연동 방식도 프로토콜 종속성부터 점검해 보죠.\"",
+      "url": null
+    },
     {
       "id": "20261127-p1",
       "date": "2026-11-27",
